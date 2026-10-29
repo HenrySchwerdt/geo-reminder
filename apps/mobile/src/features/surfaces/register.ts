@@ -5,3 +5,4 @@
  */
 import '@/features/reminders';
 import './adapters/watch';
+import './adapters/wear';
