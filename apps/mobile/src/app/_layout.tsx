@@ -1,13 +1,13 @@
 // Background tasks must be defined before anything else runs (the OS may start the app headless).
-import '@/location/tasks';
+import '@/features/geofencing/tasks';
 
-import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
-import { resync } from '@/location/runner';
-import { NotificationBridge } from '@/components/notification-bridge';
-import { palettes } from '@/theme';
+import { resync } from '@/features/geofencing/runner';
+import { NotificationBridge } from '@/features/notifications/bridge';
+import { palettes } from '@/shared/theme';
 
 export default function RootLayout() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';

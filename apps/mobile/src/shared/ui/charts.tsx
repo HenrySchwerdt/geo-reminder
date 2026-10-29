@@ -3,8 +3,8 @@ import type { Segment } from '@worktime/core';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { useColors } from '@/theme';
-import { Text } from './ui';
+import { useColors } from '@/shared/theme';
+import { Text } from './components';
 
 const HOUR = 3_600_000;
 

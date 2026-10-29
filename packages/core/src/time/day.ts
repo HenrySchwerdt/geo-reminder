@@ -3,17 +3,7 @@
  * Durations are computed from instants (ms since epoch), never from wall-clock subtraction, so DST is safe.
  */
 
-export type EventType = 'clockIn' | 'breakStart' | 'breakEnd' | 'clockOut';
-export type EventSource = 'app' | 'notification' | 'watch' | 'widget' | 'liveActivity' | 'manual' | 'geofence';
-
-export interface TimeEvent {
-  id: string;
-  type: EventType;
-  /** Epoch ms. */
-  at: number;
-  workplaceId?: string;
-  source: EventSource;
-}
+import type { TimeEvent } from '../schema';
 
 export type WorkState = 'off' | 'working' | 'break';
 

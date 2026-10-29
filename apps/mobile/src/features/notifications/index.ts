@@ -5,7 +5,7 @@
  */
 import * as Notifications from 'expo-notifications';
 
-import { clockIn, clockOut } from '@/data/actions';
+import { clockIn, clockOut } from '@/features/tracking/actions';
 
 export type ReminderKind = 'arrival' | 'departure';
 
@@ -64,7 +64,7 @@ export async function cancelReminder(kind: ReminderKind, workplaceId: string) {
 export async function handleResponse(response: Notifications.NotificationResponse): Promise<boolean> {
   const data = response.notification.request.content.data as { kind?: ReminderKind; workplaceId?: string; suggestedAt?: number };
   if (!data?.kind || !data.workplaceId) return false;
-  const { dispatch } = await import('@/location/runner');
+  const { dispatch } = await import('@/features/geofencing/runner');
   const now = Date.now();
   switch (response.actionIdentifier) {
     case 'clockInSuggested':

@@ -1,16 +1,18 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { Chips, Group, ListRow, Screen, SectionHeader, Text } from '@/components/ui';
-import { getSettings, getWorkplaces, saveSettings, useStoreVersion } from '@/data/store';
-import { locationAccess, type LocationAccess } from '@/location/permissions';
+import { locationAccess, type LocationAccess } from '@/features/geofencing/permissions';
+import { useSettings } from '@/features/settings/store';
+import { useWorkplaces } from '@/features/workplaces/store';
+import { Chips, Group, ListRow, Screen, SectionHeader, Text } from '@/shared/ui/components';
 
 const PROFILE_LABEL = { batterySaver: 'Battery saver', balanced: 'Balanced', precise: 'Precise' } as const;
 
 export default function Settings() {
-  useStoreVersion();
-  const settings = getSettings();
-  const workplaces = getWorkplaces();
+  const weeklyHours = useSettings((s) => s.weeklyHours);
+  const profile = useSettings((s) => s.profile);
+  const update = useSettings((s) => s.update);
+  const workplaces = useWorkplaces((s) => s.workplaces);
   const [access, setAccess] = useState<LocationAccess>('undetermined');
   useEffect(() => {
     void locationAccess().then(setAccess);
@@ -19,7 +21,7 @@ export default function Settings() {
   return (
     <Screen title="Settings">
       <SectionHeader>Working hours per week</SectionHeader>
-      <Chips options={[20, 30, 35, 38, 40]} value={settings.weeklyHours} format={(h) => `${h}h`} onChange={(h) => saveSettings({ weeklyHours: h })} />
+      <Chips options={[20, 30, 35, 38, 40]} value={weeklyHours} format={(h) => `${h}h`} onChange={(h) => update({ weeklyHours: h })} />
 
       <SectionHeader>Workplaces</SectionHeader>
       <Group>
@@ -39,7 +41,7 @@ export default function Settings() {
       <Group>
         <ListRow
           title="Precision & status"
-          value={PROFILE_LABEL[settings.profile]}
+          value={PROFILE_LABEL[profile]}
           icon="target"
           onPress={() => router.push('/location')}
         />

@@ -1,6 +1,6 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 
-import { useColors } from '@/theme';
+import { useColors } from '@/shared/theme';
 
 /** Four tabs. On iOS 26 this is the floating Liquid Glass tab bar, on Android the Material 3 navigation bar. */
 export default function TabsLayout() {

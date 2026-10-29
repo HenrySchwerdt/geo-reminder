@@ -23,6 +23,20 @@ export const ICONS = {
   signOut: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },
   trash: { ios: 'trash', android: 'delete', web: 'delete' },
   pulse: { ios: 'waveform.path.ecg', android: 'monitor_heart', web: 'monitor_heart' },
+  export: { ios: 'square.and.arrow.up', android: 'ios_share', web: 'ios_share' },
+  import: { ios: 'square.and.arrow.down', android: 'download', web: 'download' },
+  document: { ios: 'doc.text', android: 'description', web: 'description' },
+  table: { ios: 'tablecells', android: 'table_chart', web: 'table_chart' },
+  shield: { ios: 'checkmark.shield.fill', android: 'verified_user', web: 'verified_user' },
+  lock: { ios: 'lock.fill', android: 'lock', web: 'lock' },
+  edit: { ios: 'pencil', android: 'edit', web: 'edit' },
+  history: { ios: 'clock.arrow.circlepath', android: 'history', web: 'history' },
+  calendarAdd: { ios: 'calendar.badge.plus', android: 'calendar_add_on', web: 'calendar_add_on' },
+  info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
+  back: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
+  sparkle: { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' },
+  undo: { ios: 'arrow.uturn.backward', android: 'undo', web: 'undo' },
 } as const;
 
 export type IconName = keyof typeof ICONS;

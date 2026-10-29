@@ -4,16 +4,17 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { Button, Card, Chips, Group, Row, Screen, SectionHeader, Text, ToggleRow } from '@/components/ui';
-import { getWorkplaces, saveWorkplaces } from '@/data/store';
-import { resync } from '@/location/runner';
-import { useColors } from '@/theme';
+import { resync } from '@/features/geofencing/runner';
+import { useWorkplaces } from '@/features/workplaces/store';
+import { newId } from '@/shared/lib/id';
+import { useColors } from '@/shared/theme';
+import { Button, Card, Chips, Group, Row, Screen, SectionHeader, Text, ToggleRow } from '@/shared/ui/components';
 
 const WINDOWS = { any: undefined, morning: { from: '06:00', to: '11:00' }, day: { from: '06:00', to: '14:00' } } as const;
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 const blank = (): Workplace => ({
-  id: `wp${Date.now().toString(36)}`,
+  id: newId(),
   name: '',
   lat: 0,
   lng: 0,
@@ -28,8 +29,10 @@ const blank = (): Workplace => ({
 export default function WorkplaceEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColors();
-  const existing = getWorkplaces().find((w) => w.id === id);
-  const [wp, setWp] = useState<Workplace>(existing ?? blank());
+  const existing = useWorkplaces((s) => s.workplaces.find((w) => w.id === id));
+  const upsert = useWorkplaces((s) => s.upsert);
+  const removeWorkplace = useWorkplaces((s) => s.remove);
+  const [wp, setWp] = useState<Workplace>(() => existing ?? blank());
   const [locating, setLocating] = useState(false);
   const windowKey = !wp.rules.arrival.window ? 'any' : wp.rules.arrival.window.to === '11:00' ? 'morning' : 'day';
   const set = (patch: Partial<Workplace>) => setWp((w) => ({ ...w, ...patch }));
@@ -48,14 +51,13 @@ export default function WorkplaceEditor() {
   }
 
   async function save() {
-    const list = getWorkplaces().filter((w) => w.id !== wp.id);
-    saveWorkplaces([...list, { ...wp, name: wp.name.trim() || 'Workplace' }]);
+    upsert({ ...wp, name: wp.name.trim() || 'Workplace' });
     await resync();
     router.back();
   }
 
   async function remove() {
-    saveWorkplaces(getWorkplaces().filter((w) => w.id !== wp.id));
+    removeWorkplace(wp.id);
     await resync();
     router.back();
   }

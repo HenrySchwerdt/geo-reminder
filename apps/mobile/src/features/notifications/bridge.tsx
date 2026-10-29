@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 
-import { handleResponse } from '@/notifications';
+import { handleResponse } from './index';
 
 /** Records answers to reminder notifications: live responses and the one that cold-started the app. */
 export function NotificationBridge() {

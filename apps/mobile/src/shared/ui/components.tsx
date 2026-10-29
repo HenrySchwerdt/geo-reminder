@@ -14,8 +14,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { radius, space, type, useColors, type Palette, type TypeName } from '@/theme';
-import { ICONS, type IconName } from '@/theme/icons';
+import { radius, space, type, useColors, type Palette, type TypeName } from '@/shared/theme';
+import { ICONS, type IconName } from '@/shared/theme/icons';
 
 type ColorName = keyof Palette;
 

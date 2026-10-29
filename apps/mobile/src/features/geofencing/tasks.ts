@@ -5,8 +5,8 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
-import { logLocation } from '@/data/store';
 import { dispatch, GEOFENCE_TASK, LOCATION_TASK } from './runner';
+import { logLocation } from './store';
 
 type GeofenceData = { eventType: Location.GeofencingEventType; region: Location.LocationRegion };
 type LocationData = { locations: Location.LocationObject[] };

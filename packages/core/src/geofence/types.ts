@@ -1,35 +1,7 @@
 import type { LatLng } from '../geo';
 
-/** How hard the engine may work to be precise. Chosen by the user in Settings › Location. */
-export type PrecisionProfile = 'batterySaver' | 'balanced' | 'precise';
-
-/** The user's rules for one workplace — what the "Reminders" screen of a workplace edits. */
-export interface ReminderRules {
-  arrival: {
-    enabled: boolean;
-    /** Minutes the user must be inside before we ask (filters walking past, short visits). */
-    delayMinutes: number;
-    /** Only ask inside this local time window, e.g. 06:00–11:00 ("HH:MM"). */
-    window?: { from: string; to: string };
-  };
-  departure: {
-    enabled: boolean;
-    /** Minutes the user must be outside before we ask (filters lunch walks, GPS drift). */
-    delayMinutes: number;
-    /** Only ask when a session started here is running. */
-    onlyWhenClockedIn: boolean;
-  };
-  /** ISO weekdays 1 (Mon) … 7 (Sun) on which reminders are active. Empty = every day. */
-  days: number[];
-}
-
-export interface Workplace extends LatLng {
-  id: string;
-  name: string;
-  /** Geofence radius in metres (100–500 in the UI). */
-  radius: number;
-  rules: ReminderRules;
-}
+export type { PrecisionProfile, ReminderRules, Workplace } from '../schema';
+import type { PrecisionProfile } from '../schema';
 
 /** One location fix as delivered by expo-location (or a simulator). */
 export interface Fix extends LatLng {

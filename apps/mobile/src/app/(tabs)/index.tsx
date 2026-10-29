@@ -1,44 +1,31 @@
 import { expectedEnd, formatBalance, formatDuration } from '@worktime/core';
 import { View } from 'react-native';
 
-import { DayRibbon, WeekBars } from '@/components/charts';
-import { Button, Card, Icon, Row, Screen, Stat, StatusPill, Text } from '@/components/ui';
-import { clockIn, clockOut, endBreak, startBreak } from '@/data/actions';
-import { dailyTargetMs, daySummary, getSettings, getWorkplaces, trackingSince, useStoreVersion, weekStart } from '@/data/store';
-import { useNow } from '@/hooks/use-now';
+import { dailyTargetMs, useSettings } from '@/features/settings/store';
+import { clockIn, clockOut, endBreak, startBreak } from '@/features/tracking/actions';
+import { daySummary, weekSummary } from '@/features/tracking/selectors';
+import { useTracking } from '@/features/tracking/store';
+import { useWorkplaces } from '@/features/workplaces/store';
+import { useNow } from '@/shared/hooks/use-now';
+import { DayRibbon, WeekBars } from '@/shared/ui/charts';
+import { Button, Card, Icon, Row, Screen, Stat, StatusPill, Text } from '@/shared/ui/components';
 
 const time = (ms?: number) => (ms ? new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '–');
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-/** Week totals; `version` is part of the signature so the React Compiler recomputes after store changes. */
-function computeWeek(now: number, target: number, workdays: string, version: number) {
-  const start = weekStart(now);
-  const todayStart = daySummary(now, now).start;
-  const since = trackingSince() ?? todayStart;
-  const days = DAY_LABELS.map((label, i) => {
-    const d = daySummary(start, now, i);
-    return { label, hours: d.workedMs / 3_600_000, today: d.start === todayStart, isWorkday: workdays.includes(String(i + 1)), counts: d.start >= since && d.start < todayStart };
-  }).filter((d) => d.isWorkday || d.hours > 0);
-  const worked = days.reduce((t, d) => t + d.hours * 3_600_000, 0);
-  const elapsedTarget = days.filter((d) => d.isWorkday && d.counts).length * target;
-  const balance = days.filter((d) => !d.today).reduce((t, d) => t + d.hours * 3_600_000, 0) - elapsedTarget;
-  return { days, worked, balance, version };
-}
 
 export default function Today() {
   const now = useNow(1000);
-  const version = useStoreVersion();
-  const settings = getSettings();
-  const target = dailyTargetMs(settings);
-  const today = daySummary(now, now);
-  const workplace = getWorkplaces().find((w) => w.id === today.workplaceId);
+  const minute = useNow(60_000);
+  const ledger = useTracking((s) => s.ledger);
+  const weeklyHours = useSettings((s) => s.weeklyHours);
+  const workdays = useSettings((s) => s.workdays);
+  const workplaces = useWorkplaces((s) => s.workplaces);
 
-  const weekNow = useNow(60_000);
-  const workdays = settings.workdays.join(',');
-  const week = computeWeek(weekNow, target, workdays, version);
-
+  const target = dailyTargetMs({ weeklyHours, workdays });
+  const today = daySummary(ledger, now, now);
+  const week = weekSummary(ledger, minute, workdays, target);
+  const workplace = workplaces.find((w) => w.id === today.workplaceId);
   const end = expectedEnd(today, target, now);
-  const elapsed = today.since ? now - today.since : 0;
+  const shown = today.state === 'break' ? now - (today.since ?? now) : today.workedMs;
   const date = new Date(now).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -55,11 +42,11 @@ export default function Today() {
         <View>
           <Row gap={0} style={{ alignItems: 'baseline' }}>
             <Text variant="timer" color={today.state === 'break' ? 'break' : today.state === 'off' ? 'text/tertiary' : 'text/primary'}>
-              {formatDuration(today.state === 'break' ? elapsed : today.workedMs)}
+              {formatDuration(shown)}
             </Text>
             {today.state !== 'off' ? (
               <Text variant="numericLarge" color="text/tertiary">
-                :{String(Math.floor(((today.state === 'break' ? elapsed : today.workedMs) / 1000) % 60)).padStart(2, '0')}
+                :{String(Math.floor(shown / 1000) % 60).padStart(2, '0')}
               </Text>
             ) : null}
           </Row>
@@ -84,8 +71,8 @@ export default function Today() {
           </Row>
         ) : null}
 
-        {today.state === 'off' && !getWorkplaces().length ? (
-          <Row style={{ padding: 12, borderRadius: 16 }} gap={10}>
+        {today.state === 'off' && workplaces.length === 0 ? (
+          <Row gap={10}>
             <Icon name="location" size={18} color="accent" />
             <Text variant="footnote" color="accent" style={{ flex: 1 }}>
               Add a workplace in Settings to get reminded when you arrive.
@@ -114,7 +101,7 @@ export default function Today() {
             <Row gap={6} style={{ alignItems: 'baseline' }}>
               <Text variant="numericLarge">{formatDuration(week.worked, true)}</Text>
               <Text variant="subhead" color="text/secondary">
-                of {settings.weeklyHours}h
+                of {weeklyHours}h
               </Text>
             </Row>
           </View>
@@ -127,7 +114,7 @@ export default function Today() {
             </Text>
           </View>
         </Row>
-        <WeekBars days={week.days} targetHours={target / 3_600_000} />
+        <WeekBars days={week.days.filter((d) => d.isWorkday || d.hours > 0)} targetHours={target / 3_600_000} />
       </Card>
     </Screen>
   );

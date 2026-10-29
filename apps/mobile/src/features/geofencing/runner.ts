@@ -9,13 +9,18 @@ import {
   type Effect,
   type EngineConfig,
   type EngineInput,
+  type EngineState,
   type OsRegion,
   type SamplingPlan,
 } from '@worktime/core';
 import * as Location from 'expo-location';
 
-import { getEngineState, getWorkplaces, logLocation, saveEngineState } from '@/data/store';
-import { cancelReminder, showReminder } from '@/notifications';
+import { cancelReminder, showReminder } from '@/features/notifications';
+import { getWorkplaces } from '@/features/workplaces/store';
+import { logLocation, useGeofence } from './store';
+
+const getEngineState = () => useGeofence.getState().engine;
+const saveEngineState = (s: EngineState) => useGeofence.getState().setEngine(s);
 
 export const GEOFENCE_TASK = 'worktime-geofence';
 export const LOCATION_TASK = 'worktime-location';

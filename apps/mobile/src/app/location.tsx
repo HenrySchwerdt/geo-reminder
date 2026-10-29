@@ -2,13 +2,15 @@ import { PROFILES, type PrecisionProfile } from '@worktime/core';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 
-import { Button, Card, Group, Icon, ListRow, Row, Screen, SectionHeader, Text } from '@/components/ui';
-import { getEngineState, getLocationLog, getSettings, getWorkplaces, saveSettings, useStoreVersion } from '@/data/store';
-import { locationAccess, requestAlwaysLocation, type LocationAccess } from '@/location/permissions';
-import { dispatch, resync } from '@/location/runner';
-import { requestNotificationPermission } from '@/notifications';
-import { useColors } from '@/theme';
-import type { IconName } from '@/theme/icons';
+import { locationAccess, requestAlwaysLocation, type LocationAccess } from '@/features/geofencing/permissions';
+import { dispatch, resync } from '@/features/geofencing/runner';
+import { useGeofence } from '@/features/geofencing/store';
+import { requestNotificationPermission } from '@/features/notifications';
+import { useSettings } from '@/features/settings/store';
+import { useWorkplaces } from '@/features/workplaces/store';
+import { useColors } from '@/shared/theme';
+import type { IconName } from '@/shared/theme/icons';
+import { Button, Card, Group, Icon, ListRow, Row, Screen, SectionHeader, Text } from '@/shared/ui/components';
 
 const OPTIONS: { key: PrecisionProfile; title: string; text: string; icon: IconName }[] = [
   { key: 'batterySaver', title: 'Battery saver', text: 'Wi-Fi & cell near the fence. Reminders can be 1–3 min late.', icon: 'moon' },
@@ -17,7 +19,7 @@ const OPTIONS: { key: PrecisionProfile; title: string; text: string; icon: IconN
 ];
 
 async function chooseProfile(profile: PrecisionProfile) {
-  saveSettings({ profile });
+  useSettings.getState().update({ profile });
   await dispatch({ type: 'profile', profile, now: Date.now() });
 }
 
@@ -25,17 +27,16 @@ const ZONE = { far: 'Far away', approach: 'Approaching', near: 'Near', inside: '
 const time = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export default function LocationScreen() {
-  useStoreVersion();
   const c = useColors();
-  const settings = getSettings();
-  const engine = getEngineState();
-  const workplaces = getWorkplaces();
-  const log = getLocationLog();
+  const profile = useSettings((s) => s.profile);
+  const engine = useGeofence((s) => s.engine);
+  const log = useGeofence((s) => s.log);
+  const workplaces = useWorkplaces((s) => s.workplaces);
   const [access, setAccess] = useState<LocationAccess>('undetermined');
   useEffect(() => {
     void locationAccess().then(setAccess);
   }, []);
-  const budget = PROFILES[settings.profile].fineBudgetMinutes;
+  const budget = PROFILES[profile].fineBudgetMinutes;
 
   async function grant() {
     setAccess(await requestAlwaysLocation());
@@ -81,7 +82,7 @@ export default function LocationScreen() {
 
       <SectionHeader>Precision</SectionHeader>
       {OPTIONS.map((o) => {
-        const on = settings.profile === o.key;
+        const on = profile === o.key;
         return (
           <Pressable key={o.key} onPress={() => void chooseProfile(o.key)}>
             <Card style={{ flexDirection: 'row', gap: 14, borderWidth: on ? 2 : 0, borderColor: c.accent, padding: 16 }}>
