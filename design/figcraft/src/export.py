@@ -17,9 +17,11 @@ FRAMES = {  # page -> folder (one PNG per top-level frame, 2x)
     "Apple Watch": "watch",
     "Live Activity & Widgets": "widgets",
     "Widgets": "widgets/gallery",
+    "Geofencing": "iphone/geofencing",
+    "Android & Wear OS": "android",
 }
 PAGES = ["Cover", "Brand", "Design System", "Flows", "iPhone · Core", "iPhone · Places & Schedule", "iPhone · Onboarding",
-         "iPhone · System States", "Apple Watch", "Live Activity & Widgets", "Widgets", "Directions", "Dark Mode"]
+         "iPhone · System States", "Apple Watch", "Live Activity & Widgets", "Widgets", "Geofencing", "Android & Wear OS", "Directions", "Dark Mode"]
 
 
 def slug(s):

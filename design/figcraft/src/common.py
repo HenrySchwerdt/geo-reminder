@@ -193,7 +193,7 @@ def ribbon(b, parent, w, segs, now=None, planned=None, start=6, end=20, labels=T
     if planned and now:
         b.rect(f, X(planned) - X(now), h, "accent/soft", radius=h / 2, x=X(now), y=top, name="Planned")
     for a, z, kind in segs:
-        color = {"work": "accent", "break": "break", "missing": "danger", "home": "info"}[kind]
+        color = {"work": "accent", "break": "break", "missing": "danger", "home": "info", "away": "text/tertiary"}[kind]
         b.rect(f, max(X(z) - X(a), 3), h, color, radius=h / 2, x=X(a), y=top, name=f"{kind} {a}–{z}")
     if now:
         b.rect(f, 2, h + 8, "text/primary", radius=1, x=X(now) - 1, y=top - 4, name="Now")

@@ -113,7 +113,7 @@ app, or work headless with the CLI:
 
 ```bash
 cd design/figcraft/src
-python3 build.py screens_core screens_places screens_onboarding screens_apple flows brand   # regenerate .figcraft
+python3 build.py screens_core screens_places screens_onboarding screens_apple screens_geo flows brand   # regenerate .figcraft
 python3 export.py                                                                      # regenerate PNGs
 ```
 
