@@ -57,7 +57,7 @@ Shared: all screens, flows, data, the geofence engine, notifications (expo-notif
 
 ## Milestones
 1. ✅ Product design (this repo's `design/`).
-2. **Core + app shell** (this step): `packages/core` geofence engine with tests, Expo app with tabs, Today screen
+2. ✅ **Core + app shell**: `packages/core` geofence engine with tests, Expo app with tabs, Today screen
    with manual clock in/out/break, local persistence, workplace setup, background geofencing task.
 3. Calendar, corrections, insights, onboarding, notifications with actions.
 4. Widgets / Live Activity (Swift), Glance widgets + ongoing notification (Kotlin), watch apps.

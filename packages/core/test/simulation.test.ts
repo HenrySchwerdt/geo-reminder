@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { initialState, step, type EngineConfig, type Fix, type PrecisionProfile, type Workplace } from '../src';
 
+declare const console: { log(...args: unknown[]): void };
+
 const STUDIO: Workplace = {
   id: 'studio',
   name: 'Studio Kreuzberg',

@@ -10,8 +10,8 @@
   It reminds you to clock in and out when you arrive at or leave work, and keeps a record you can always correct.
 </p>
 
-> **Status: Milestone 1, product design.** The app itself is not implemented yet. This repository has
-> the complete UX and visual design as editable FigCraft files, plus exports, specifications and research.
+> **Status:** the product design is complete, and the iOS & Android app (Expo) is in progress.
+> The adaptive geofencing engine and the Today flow work; Calendar editing, widgets and watch apps come next.
 
 ![Worktime: Today screen in light and dark mode and the calendar](design/exports/brand/README%20·%20Hero.png)
 
@@ -63,6 +63,22 @@ clear (Liquid Glass) and tinted appearances and a green alternate icon are on th
 More: [all screens](design/exports/iphone), [watch](design/exports/watch), [widgets](design/exports/widgets),
 [page overviews](design/exports/overview), [design system](design/exports/design-system).
 
+## The app
+
+```bash
+npm install
+npm test                       # geofence engine + time math (Vitest)
+cd apps/mobile && npx expo run:ios   # or run:android (development build)
+```
+
+* **iPhone and Android phones**: one Expo codebase in `apps/mobile` ([README](apps/mobile/README.md)).
+* **Apple Watch and Wear OS**: native apps (SwiftUI, Compose for Wear OS) that sync with the phone. React
+  Native doesn't run on watches ([architecture](docs/technical/architecture.md)).
+* **Geofencing**: three rings per workplace. Far away nothing runs, approaching triggers a low-power check
+  every few minutes, near the fence GPS runs every 20 to 90 s, and once inside it stops. Users decide when
+  they're asked. A commute simulation needs 14 location fixes an hour instead of 720
+  ([concept](docs/technical/geofencing.md)).
+
 ## What's here
 
 ```
@@ -74,7 +90,11 @@ design/
     watch/  widgets/ (+ widgets/gallery)  overview/  design-system/
     brand/                        ← app icon (PNG 1024, SVG), logo lockup SVG, README boards
   references/                     ← research reference previews
+apps/mobile/                      ← Expo app (iOS + Android)
+packages/core/                    ← geofence engine + time tracking math, tested
 docs/
+  technical/geofencing.md         ← adaptive geofencing concept and numbers
+  technical/architecture.md       ← Expo + native watches, sync, milestones
   product/requirements.md         ← requirements → screens
   product/user-flows.md           ← six journeys + state model
   product/technical-constraints.md← iOS limits that shape the UX
@@ -82,7 +102,6 @@ docs/
   design/design-system.md         ← tokens, type, components, icons (SF Symbol mapping)
   design/decisions.md             ← design decisions and trade-offs
 packages/design-tokens/tokens.json← colours (light/dark), type, spacing, radii, icons
-apps/  packages/core/             ← reserved for later milestones (React Native / watchOS / domain logic)
 ```
 
 ## Pages in `worktime.figcraft`
@@ -99,6 +118,8 @@ apps/  packages/core/             ← reserved for later milestones (React Nativ
 | iPhone · System States | Empty, loading, permission denied, location unavailable, missed check-in, incomplete entry, conflict, confirmation and error |
 | Apple Watch | Main, active, break, clock-out prompt, complications, arrival notification, today summary, Smart Stack widget, offline sync |
 | Live Activity & Widgets | Lock Screen Live Activity and widgets, Dynamic Island (compact, minimal, expanded), Home Screen widgets in context |
+| Geofencing | Workplace with approach/near/fence rings, arrival and departure rules, precision & battery profiles, how-it-works explainer, live location status |
+| Android & Wear OS | Material 3 Today (light/dark), ongoing and location notifications, background-location permission, round Wear OS screens |
 | Widgets | Every widget family, light and dark: small (not working, working, break, interactive clock-in), medium (today, week), large (week), Lock Screen accessories, Control Center controls, clear style, StandBy |
 | Directions | The three explored visual directions |
 | Dark Mode | Key screens in dark appearance |

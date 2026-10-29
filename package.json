@@ -2,11 +2,12 @@
   "name": "worktime",
   "private": true,
   "workspaces": [
-    
+    "apps/mobile",
     "packages/*"
   ],
   "scripts": {
     "test": "npm run test --workspace @worktime/core",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "mobile": "npm run start --workspace @worktime/mobile"
   }
 }

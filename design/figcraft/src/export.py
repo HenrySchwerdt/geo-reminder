@@ -48,6 +48,24 @@ def main():
         "--node", "App Icon · 1024 preview", "--scale", f"{1024 / 360:.4f}")
     run("export", DOC, "-o", os.path.join(brand, "app-icon.svg"), "--page", "Brand", "--node", "App Icon · 1024 preview")
     run("export", DOC, "-o", os.path.join(brand, "logo-lockup.svg"), "--page", "Brand", "--node", "Lockup · Horizontal")
+    # App icon files for the Expo app
+    app_images = os.path.join(HERE, "..", "..", "..", "apps", "mobile", "assets", "images")
+    if os.path.isdir(app_images):
+        for name in ("icon", "android-icon-foreground", "android-icon-background", "android-icon-monochrome", "splash-icon"):
+            run("export", DOC, "-o", os.path.join(app_images, f"{name}.png"), "--page", "Brand", "--node", f"Asset · {name}")
+        run("export", DOC, "-o", os.path.join(app_images, "favicon.png"), "--page", "Brand", "--node", "Asset · icon",
+            "--scale", "0.0625")
+        flatten(os.path.join(app_images, "icon.png"))
+
+
+def flatten(path):
+    """App Store icons must not have an alpha channel."""
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Pillow not installed: remove the alpha channel of icon.png before submitting")
+        return
+    Image.open(path).convert("RGB").save(path)
 
 
 if __name__ == "__main__":

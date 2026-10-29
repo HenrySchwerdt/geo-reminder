@@ -228,8 +228,27 @@ def showcase(b):
             title="Reminders that ask, never assume")
 
 
+def app_assets(b, x=2000, y=0):
+    """Source frames for the app's icon files (exported to apps/mobile/assets/images by export.py)."""
+    sp = ICONS["Default"]
+    f = b.frame(None, name="Asset · icon", x=x, y=y, w=1024, h=1024, fills=[{"type": "linearGradient", "stops": sp["stops"]}])
+    m = mark(b, f, 1024, arc=sp["arc"], pin=sp["pin"], hole=sp["hole"], shadow=True)
+    b.absolute(m, 0, 0)
+    fg = b.frame(None, name="Asset · android-icon-foreground", x=x + 1100, y=y, w=1024, h=1024)
+    m = mark(b, fg, 640, arc=sp["arc"], pin=sp["pin"], hole="#F4F2EC")
+    b.absolute(m, 192, 192)
+    b.frame(None, name="Asset · android-icon-background", x=x + 2200, y=y, w=1024, h=1024, fill="#F4F2EC")
+    mono = b.frame(None, name="Asset · android-icon-monochrome", x=x + 3300, y=y, w=1024, h=1024)
+    m = mark(b, mono, 640, arc="#000000", pin="#000000", hole="#FFFFFF00")
+    b.absolute(m, 192, 192)
+    sp_ = b.frame(None, name="Asset · splash-icon", x=x + 4400, y=y, w=512, h=512)
+    m = mark(b, sp_, 512, arc=sp["arc"], pin=sp["pin"], hole="#F4F2EC")
+    b.absolute(m, 0, 0)
+
+
 def build(b):
     b.page("Brand")
     logo_board(b)
+    app_assets(b, 2000, 0)
     if os.path.isdir(os.path.join(EXPORTS, "iphone")):
         showcase(b)
