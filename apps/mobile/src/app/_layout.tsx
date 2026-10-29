@@ -42,7 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="breaks" options={{ title: 'Breaks' }} />
         <Stack.Screen name="reminders" options={{ title: 'Reminders' }} />
         <Stack.Screen name="appearance" options={{ title: 'Appearance' }} />
-        <Stack.Screen name="data"options={{ title: 'Your data' }} />
+        <Stack.Screen name="data" options={{ title: 'Your data' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
       </Stack>
     </ThemeProvider>
