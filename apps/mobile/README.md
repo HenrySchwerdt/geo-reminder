@@ -14,29 +14,45 @@ npx expo run:ios       # or: npx expo run:android — a development build is req
 Background location, geofencing and notification actions need a **development build** (not Expo Go) and a
 real device. `npx expo start --web` runs a browser preview of the UI with local-storage data and no location.
 
-## What's in this milestone
+## Features
 
 | Area | Status |
 |---|---|
-| Tabs (Today, Calendar, Insights, Settings) — Liquid Glass tab bar on iOS 26, Material on Android | ✅ |
-| Today: clock in / break / clock out, live timer, day ribbon, expected end incl. legal break, week bars, balance | ✅ |
-| Local-first storage: append-only event log in SQLite | ✅ |
+| Tabs (Today, Calendar, Insights, Settings): Liquid Glass tab bar on iOS 26, Material on Android | ✅ |
+| Today: clock in / break / clock out, live timer, day ribbon, expected end with the legally required break, week bars, balance | ✅ |
+| Calendar: month grid, day details, history, edit / add / delete sessions with impact preview and undo (append-only) | ✅ |
 | Workplaces with reminder rules (dwell time, time window, days, departure delay) | ✅ |
-| Adaptive geofencing (`@worktime/core` engine + `src/location`): OS regions, distance-scaled sampling, precision profiles, GPS budget, diagnostics | ✅ needs on-device verification |
-| Reminder notifications with “Clock in at 08:44” actions | ✅ actions open the app; fully-background actions need a native extension |
-| Calendar editing, corrections, onboarding, Live Activity, widgets, watch apps | next milestones |
+| Adaptive geofencing (`@worktime/core` engine + `features/geofencing`): OS regions, distance-scaled sampling, precision profiles, GPS budget, diagnostics | ✅ needs on-device verification |
+| Reminder notifications with “Clock in at 08:44” actions | ✅ actions open the app |
+| Onboarding with prominent background-location disclosure | ✅ |
+| Your data: CSV / JSON export, validated backup import, delete all; privacy screen | ✅ |
+| Release: EAS profiles, privacy manifest, store docs (`docs/release`) | ✅ |
+| Live Activity, widgets, watch apps | next |
+
+## Architecture
+
+* `@worktime/core`: pure domain logic with zod schemas as the single source of types, plus the geofence engine,
+  time math, the append-only ledger and export. It is unit-tested.
+* `src/features/<feature>`: Zustand stores (persisted synchronously to the SQLite key-value store and validated
+  with zod on rehydrate), actions, pure planners and feature components.
+* `src/app`: thin Expo Router routes. `src/shared`: UI kit, theme tokens, icons, storage helpers.
+* Data never leaves the device. The event log is append-only SQLite with migrations; corrections supersede,
+  they never overwrite.
+
+Run `npm test` from the repo root (core + app logic), `npx tsc --noEmit` and `npx expo lint` here. CI runs all
+of them plus `expo-doctor` and the iOS/Android bundles.
 
 ## Structure
 
 ```
-src/app/                 routes (Expo Router)
-  (tabs)/                Today, Calendar, Insights, Settings
-  workplace/[id].tsx     workplace + reminder rules editor
-  location.tsx           precision profile, live engine status, permission state, event log
-src/location/            background tasks, engine runner (effects → expo-location / notifications), permissions
-src/data/                SQLite event log (db.ts, web preview: db.web.ts), store, clock actions
-src/components/          UI kit mirroring the FigCraft design system, day ribbon and charts
-src/theme/               tokens from @worktime/design-tokens, SF Symbol / Material Symbol map
+src/app/                 routes: (tabs), onboarding/, day/[date], session/[id], workplace/[id], location, data, privacy
+src/features/tracking    event log (SQLite), store, selectors, clock actions
+src/features/history     calendar model, correction planning, day/session components
+src/features/geofencing  background tasks, engine runner, permissions, engine store
+src/features/onboarding  steps, disclosure copy, gate
+src/features/data        CSV/JSON export, import, delete all
+src/features/settings, workplaces, notifications
+src/shared               UI kit, charts, theme tokens, icons, storage/persistence helpers
 ```
 
 App icons in `assets/images` are exported from the FigCraft Brand page (`design/figcraft/src/export.py`).
