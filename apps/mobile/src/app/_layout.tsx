@@ -35,6 +35,8 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="workplace/[id]" options={{ presentation: 'modal', title: 'Workplace' }} />
         <Stack.Screen name="session/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="clock/in" options={{ presentation: 'formSheet', headerShown: false, sheetGrabberVisible: true, sheetAllowedDetents: [0.7, 1] }} />
+        <Stack.Screen name="clock/out" options={{ presentation: 'formSheet', headerShown: false, sheetGrabberVisible: true, sheetAllowedDetents: [0.85, 1] }} />
         <Stack.Screen name="location" options={{ title: 'Location' }} />
         <Stack.Screen name="working-hours" options={{ title: 'Working hours' }} />
         <Stack.Screen name="breaks" options={{ title: 'Breaks' }} />

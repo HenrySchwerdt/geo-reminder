@@ -1,6 +1,12 @@
-import { dayRange, expectedEnd, formatBalance, formatDuration, sessionZone, zoneCity } from '@worktime/core';
-import { View } from 'react-native';
+import { breakRulesOf, dayRange, effectiveEvents, expectedEnd, formatBalance, formatDuration, sessionZone, zoneCity } from '@worktime/core';
+import { router } from 'expo-router';
+import { Pressable, View } from 'react-native';
 
+import { IncompleteCard, MissedCard } from '@/features/clock/cards';
+import { useDismissed } from '@/features/clock/dismissed';
+import { missedPrompt } from '@/features/clock/missed';
+import { useGeofence } from '@/features/geofencing/store';
+import { findIncomplete, targetFor } from '@/features/history/balance';
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
 import { clockIn, clockOut, endBreak, startBreak } from '@/features/tracking/actions';
 import { formatDayFull, formatTime } from '@/features/history/dates';
@@ -18,25 +24,35 @@ export default function Today() {
   const ledger = useTracking((s) => s.ledger);
   const weeklyHours = useSettings((s) => s.weeklyHours);
   const workdays = useSettings((s) => s.workdays);
+  const breakRules = useSettings((s) => s.breakRules);
+  const engine = useGeofence((s) => s.engine);
+  const dismissed = useDismissed((s) => s.keys);
   const workplaces = useWorkplaces((s) => s.workplaces);
 
-  const target = dailyTargetMs({ weeklyHours, workdays });
+  const dailyMs = dailyTargetMs({ weeklyHours, workdays });
   const tz = deviceTimeZone();
   // A night shift stays on the day it started until it ends.
   const day = currentDay(ledger, now, tz);
+  // A day the weekly pattern marks as off asks nothing of the user.
+  const target = targetFor(day, { workdays, dailyMs });
   const today = daySummary(ledger, day, now, tz);
   const running = today.sessions.find((s) => s.end === undefined);
   // Times of the running session stay in the zone it started in, even after a flight.
   const zone = running ? sessionZone(running, tz) : tz;
   const time = (ms?: number) => (ms ? formatTime(ms, zone) : '–');
-  const week = weekSummary(ledger, minute, workdays, target, tz);
+  const week = weekSummary(ledger, minute, workdays, dailyMs, tz);
   const workplace = workplaces.find((w) => w.id === today.workplaceId);
-  const end = expectedEnd(today, target, now);
+  const rules = breakRulesOf(breakRules);
+  const end = target > 0 ? expectedEnd(today, target, now, rules) : undefined;
   const shown = today.state === 'break' ? now - (today.since ?? now) : today.workedMs;
   const date = formatDayFull(day);
+  const missed = missedPrompt({ engine, workplaces, ledger, now: minute, tz, dismissed });
+  // The most recent past session without a check-out (it stays out of the balance until fixed).
+  const incomplete = findIncomplete(effectiveEvents(ledger), minute, tz).at(-1);
 
   return (
     <Screen title="Today" subtitle={date}>
+      {missed ? <MissedCard prompt={missed} place={workplaces.find((w) => w.id === missed.workplaceId)?.name ?? 'your workplace'} now={now} targetMs={target} rules={rules} /> : null}
       <Card style={{ gap: 16 }}>
         {today.state === 'working' ? (
           <StatusPill state="working" label={workplace ? `Working · ${workplace.name}` : 'Working'} />
@@ -61,7 +77,9 @@ export default function Today() {
             {today.state === 'off'
               ? today.workedMs > 0
                 ? `Worked ${formatDuration(today.workedMs, true)} today`
-                : `${formatDuration(target, true)} planned today`
+                : target > 0
+                  ? `${formatDuration(target, true)} planned today`
+                  : 'Day off'
               : today.state === 'break'
                 ? `Break · ${formatDuration(today.workedMs, true)} worked so far`
                 : `Since ${time(today.firstIn)} · ${formatDuration(today.breakMs, true)} break`}
@@ -72,9 +90,9 @@ export default function Today() {
 
         {today.state !== 'off' ? (
           <Row>
-            <Stat label="Remaining" value={formatDuration(Math.max(0, target - today.workedMs), true)} />
+            <Stat label="Remaining" value={target > 0 ? formatDuration(Math.max(0, target - today.workedMs), true) : '–'} />
             <Stat label="Expected end" value={time(end)} />
-            <Stat label="Today" value={`${Math.round((today.workedMs / target) * 100)}%`} color="accent" />
+            <Stat label="Today" value={target > 0 ? `${Math.round((today.workedMs / target) * 100)}%` : 'Day off'} color="accent" />
           </Row>
         ) : null}
 
@@ -106,7 +124,14 @@ export default function Today() {
           ) : null}
           {today.state === 'break' ? <Button label="End break" icon="play" flex onPress={() => endBreak()} /> : null}
         </Row>
+        <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push(today.state === 'off' ? '/clock/in' : '/clock/out')} style={{ alignSelf: 'center' }}>
+          <Text variant="subheadStrong" color="accent">
+            {today.state === 'off' ? 'Clock in at another time…' : 'Clock out at another time…'}
+          </Text>
+        </Pressable>
       </Card>
+
+      {incomplete ? <IncompleteCard session={incomplete} place={workplaces.find((w) => w.id === incomplete.workplaceId)?.name} /> : null}
 
       <Card style={{ gap: 14 }}>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
