@@ -6,6 +6,7 @@ import { locationAccess, requestAlwaysLocation, type LocationAccess } from '@/fe
 import { dispatch, resync } from '@/features/geofencing/runner';
 import { useGeofence } from '@/features/geofencing/store';
 import { requestNotificationPermission } from '@/features/notifications';
+import { LOCATION_DISCLOSURE, LOCATION_PROMPT_NOTE } from '@/features/onboarding/copy';
 import { useSettings } from '@/features/settings/store';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { useColors } from '@/shared/theme';
@@ -54,7 +55,15 @@ export default function LocationScreen() {
               Background location is {access === 'whenInUse' ? 'only allowed while using the app' : 'off'}
             </Text>
           </Row>
-          <Text variant="footnote">Worktime needs “Always” / “Allow all the time” to notice when you arrive or leave. Your route is never recorded.</Text>
+          <Text variant="footnote">{LOCATION_DISCLOSURE.body}</Text>
+          {LOCATION_DISCLOSURE.points.slice(0, 2).map((p) => (
+            <Text key={p} variant="footnote" color="text/secondary">
+              • {p}
+            </Text>
+          ))}
+          <Text variant="caption" color="text/secondary">
+            {LOCATION_PROMPT_NOTE}
+          </Text>
           <Button label={access === 'denied' ? 'Open settings' : 'Allow location'} style="ink" onPress={access === 'denied' ? () => Linking.openSettings() : grant} />
         </Card>
       ) : null}

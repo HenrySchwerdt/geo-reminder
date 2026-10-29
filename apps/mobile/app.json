@@ -11,10 +11,8 @@
       "bundleIdentifier": "com.worktime.app",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Worktime uses your location to remind you to clock in and out at your workplaces.",
         "UIBackgroundModes": [
-          "location",
-          "remote-notification"
+          "location"
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
