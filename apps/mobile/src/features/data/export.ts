@@ -1,11 +1,12 @@
 /** Export functions: UI-free, everything stays on the device until the user picks a share target. */
-import { dateKeyOf, toCsv, toExportFile } from '@worktime/core';
+import { dailyTarget, dateKeyOf, toCsv, toExportFile, type DateKey } from '@worktime/core';
 
 import { getSettings } from '@/features/settings/store';
 import { getLedger } from '@/features/tracking/store';
 import { getWorkplaces } from '@/features/workplaces/store';
 import { deviceTimeZone } from '@/shared/lib/time-zone';
-import { shareTextFile } from './files';
+import { sharePdf, shareTextFile } from './files';
+import { buildReport, reportFileName, reportHtml } from './report';
 
 const timeZone = deviceTimeZone;
 
@@ -26,4 +27,11 @@ export async function exportJson(now = Date.now()): Promise<string> {
   const file = toExportFile({ settings: getSettings(), workplaces: getWorkplaces(), events: getLedger(), timeZone: timeZone(), now });
   await shareTextFile({ name, text: JSON.stringify(file, null, 2), mimeType: 'application/json', uti: 'public.json' });
   return name;
+}
+
+/** PDF report of one month (`month` = its first day): totals and a table of sessions, shared as a file. */
+export async function exportMonthlyReport(month: DateKey, now = Date.now()): Promise<string> {
+  const settings = getSettings();
+  const report = buildReport({ ledger: getLedger(), month, now, targets: { workdays: settings.workdays, dailyMs: dailyTarget(settings) }, tz: timeZone() });
+  return sharePdf(reportHtml(report, today(now)), reportFileName(month));
 }

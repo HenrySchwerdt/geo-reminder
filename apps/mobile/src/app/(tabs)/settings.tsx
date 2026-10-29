@@ -2,14 +2,21 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { locationAccess, type LocationAccess } from '@/features/geofencing/permissions';
+import { APPEARANCE_LABEL } from '@/features/settings/appearance';
+import { describeReminders, describeWorkdays, formatHours } from '@/features/settings/format';
 import { useSettings } from '@/features/settings/store';
 import { useWorkplaces } from '@/features/workplaces/store';
-import { Chips, Group, ListRow, Screen, SectionHeader, Text } from '@/shared/ui/components';
+import { Group, ListRow, Screen, SectionHeader, Text, ToggleRow } from '@/shared/ui/components';
 
 const PROFILE_LABEL = { batterySaver: 'Battery saver', balanced: 'Balanced', precise: 'Precise' } as const;
 
 export default function Settings() {
   const weeklyHours = useSettings((s) => s.weeklyHours);
+  const workdays = useSettings((s) => s.workdays);
+  const breakRules = useSettings((s) => s.breakRules);
+  const reminders = useSettings((s) => s.reminders);
+  const appearance = useSettings((s) => s.appearance);
+  const liveActivity = useSettings((s) => s.liveActivity);
   const profile = useSettings((s) => s.profile);
   const update = useSettings((s) => s.update);
   const workplaces = useWorkplaces((s) => s.workplaces);
@@ -20,8 +27,12 @@ export default function Settings() {
 
   return (
     <Screen title="Settings">
-      <SectionHeader>Working hours per week</SectionHeader>
-      <Chips options={[20, 30, 35, 38, 40]} value={weeklyHours} format={(h) => `${h}h`} onChange={(h) => update({ weeklyHours: h })} />
+      <SectionHeader>Work</SectionHeader>
+      <Group>
+        <ListRow title="Working hours" value={`${formatHours(weeklyHours)} · ${describeWorkdays(workdays)}`} icon="clock" onPress={() => router.push('/working-hours')} />
+        <ListRow title="Breaks" value={breakRules.length ? `${breakRules.length} ${breakRules.length === 1 ? 'rule' : 'rules'}` : 'None'} icon="break" tint="break" onPress={() => router.push('/breaks')} />
+        <ListRow title="Reminders" subtitle={describeReminders(reminders)} icon="bell" onPress={() => router.push('/reminders')} last />
+      </Group>
 
       <SectionHeader>Workplaces</SectionHeader>
       <Group>
@@ -54,6 +65,20 @@ export default function Settings() {
           last
         />
       </Group>
+
+      <SectionHeader>App</SectionHeader>
+      <Group>
+        <ListRow title="Appearance" value={APPEARANCE_LABEL[appearance]} icon="moon" tint="info" onPress={() => router.push('/appearance')} />
+        <ToggleRow
+          title="Live Activity"
+          subtitle="Shows the running session on the Lock Screen and in the Dynamic Island on iPhone, and as an ongoing notification on Android."
+          icon="pulse"
+          value={liveActivity}
+          onChange={(v) => update({ liveActivity: v })}
+          last
+        />
+      </Group>
+
       <SectionHeader>Data</SectionHeader>
       <Group>
         <ListRow icon="lock" title="Your data" subtitle="Export as CSV or JSON, import, delete" onPress={() => router.push('/data')} />

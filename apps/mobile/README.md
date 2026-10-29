@@ -24,6 +24,9 @@ real device. `npx expo start --web` runs a browser preview of the UI with local-
 | Workplaces with reminder rules (dwell time, time window, days, departure delay) | ✅ |
 | Adaptive geofencing (`@worktime/core` engine + `features/geofencing`): OS regions, distance-scaled sampling, precision profiles, GPS budget, diagnostics | ✅ needs on-device verification |
 | Reminder notifications with “Clock in at 08:44” actions | ✅ actions open the app |
+| Time-based reminders (start / stop / missing check-out) for Home days and when location is off (`features/reminders`) | ✅ needs on-device verification |
+| Settings: working hours and weekly pattern, break rules, reminders, appearance, Live Activity toggle | ✅ |
+| Monthly PDF report (`expo-print`) | ✅ |
 | Onboarding with prominent background-location disclosure | ✅ |
 | Your data: CSV / JSON export, validated backup import, delete all; privacy screen | ✅ |
 | Release: EAS profiles, privacy manifest, store docs (`docs/release`) | ✅ |
@@ -51,7 +54,7 @@ src/features/history     calendar model, correction planning, day/session compon
 src/features/geofencing  background tasks, engine runner, permissions, engine store
 src/features/onboarding  steps, disclosure copy, gate
 src/features/data        CSV/JSON export, import, delete all
-src/features/settings, workplaces, notifications
+src/features/settings, workplaces, notifications, reminders (time-based planner + scheduling)
 src/shared               UI kit, charts, theme tokens, icons, storage/persistence helpers
 ```
 

@@ -1,8 +1,11 @@
+import { addMonths } from '@worktime/core';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { applyImport, confirm, deleteAllData, exportCsv, exportJson, pickAndPreviewImport, type ImportPreview } from '@/features/data';
+import { applyImport, confirm, deleteAllData, exportCsv, exportJson, exportMonthlyReport, pickAndPreviewImport, type ImportPreview } from '@/features/data';
+import { formatMonth, toDateKey } from '@/features/history/dates';
 import { useTracking } from '@/features/tracking/store';
+import { useNow } from '@/shared/hooks/use-now';
 import { Button, Card, Group, Icon, ListRow, Row, Screen, SectionHeader, Text, ToggleRow } from '@/shared/ui/components';
 
 type Banner = { tone: 'ok' | 'error'; text: string };
@@ -17,6 +20,9 @@ export default function DataScreen() {
   const [banner, setBanner] = useState<Banner | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [restoreSettings, setRestoreSettings] = useState(false);
+  const now = useNow(60_000);
+  const thisMonth = `${toDateKey(now).slice(0, 7)}-01`;
+  const [month, setMonth] = useState(thisMonth);
 
   /** Runs an action with a busy lock and reports its outcome in the banner. */
   async function run(action: () => Promise<string | null>) {
@@ -90,6 +96,23 @@ export default function DataScreen() {
       </Group>
       <Text variant="footnote" color="text/secondary" style={{ paddingHorizontal: 4 }}>
         CSV has one row per work session in your time zone and opens in Excel, Numbers and Google Sheets. The JSON backup contains everything, including settings and workplaces. Files are created on this device and handed to the app you choose.
+      </Text>
+
+      <SectionHeader>Monthly report</SectionHeader>
+      <Card style={{ gap: 12 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={12} onPress={() => setMonth((m) => addMonths(m, -1))}>
+            <Icon name="back" />
+          </Pressable>
+          <Text variant="headline">{formatMonth(month)}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Next month" hitSlop={12} disabled={month >= thisMonth} style={{ opacity: month >= thisMonth ? 0.3 : 1 }} onPress={() => setMonth((m) => addMonths(m, 1))}>
+            <Icon name="chevron" />
+          </Pressable>
+        </Row>
+        <Button label="Create PDF report" icon="document" style="secondary" onPress={() => exportAs(() => exportMonthlyReport(month))} disabled={busy} />
+      </Card>
+      <Text variant="footnote" color="text/secondary" style={{ paddingHorizontal: 4 }}>
+        A printable summary of the month: worked time, target and balance, and every session with start, end and breaks in the time zone it was recorded in. Days without a check-out are marked and not counted. On the web preview the report opens as a page you can print.
       </Text>
 
       <SectionHeader>Import</SectionHeader>

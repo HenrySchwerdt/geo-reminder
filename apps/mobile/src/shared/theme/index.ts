@@ -1,5 +1,8 @@
 import tokens from '@worktime/design-tokens';
-import { useColorScheme } from 'react-native';
+
+import { useScheme } from './scheme';
+
+export { applyAppearance, useScheme } from './scheme';
 
 type ColorName = keyof typeof tokens.color;
 export type Palette = Record<ColorName, string>;
@@ -10,7 +13,7 @@ const build = (mode: 'light' | 'dark') =>
 export const palettes = { light: build('light'), dark: build('dark') };
 
 export function useColors(): Palette {
-  return palettes[useColorScheme() === 'dark' ? 'dark' : 'light'];
+  return palettes[useScheme()];
 }
 
 export const space = tokens.spacing;

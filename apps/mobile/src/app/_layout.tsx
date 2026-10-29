@@ -4,18 +4,22 @@ import '@/features/surfaces/register';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 
 import { resync } from '@/features/geofencing/runner';
 import { SurfaceSync } from '@/features/surfaces/sync';
 import { NotificationBridge } from '@/features/notifications/bridge';
 import { OnboardingGate } from '@/features/onboarding';
-import { palettes } from '@/shared/theme';
+import { useSettings } from '@/features/settings/store';
+import { applyAppearance, palettes, useScheme } from '@/shared/theme';
 
 export default function RootLayout() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const scheme = useScheme();
+  const appearance = useSettings((s) => s.appearance);
   const c = palettes[scheme];
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+
+  useEffect(() => applyAppearance(appearance), [appearance]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') void resync();
@@ -32,7 +36,11 @@ export default function RootLayout() {
         <Stack.Screen name="workplace/[id]" options={{ presentation: 'modal', title: 'Workplace' }} />
         <Stack.Screen name="session/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="location" options={{ title: 'Location' }} />
-        <Stack.Screen name="data" options={{ title: 'Your data' }} />
+        <Stack.Screen name="working-hours" options={{ title: 'Working hours' }} />
+        <Stack.Screen name="breaks" options={{ title: 'Breaks' }} />
+        <Stack.Screen name="reminders" options={{ title: 'Reminders' }} />
+        <Stack.Screen name="appearance" options={{ title: 'Appearance' }} />
+        <Stack.Screen name="data"options={{ title: 'Your data' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
       </Stack>
     </ThemeProvider>
