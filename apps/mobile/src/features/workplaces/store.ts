@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { persistOptions } from '@/shared/lib/persist';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 
 type WorkplacesState = {
   workplaces: Workplace[];
@@ -16,7 +17,8 @@ export const useWorkplaces = create<WorkplacesState>()(
   persist(
     (set) => ({
       workplaces: [],
-      upsert: (w) => set((s) => ({ workplaces: [...s.workplaces.filter((x) => x.id !== w.id), WorkplaceSchema.parse(w)] })),
+      // A workplace keeps the zone it was created in: its reminder windows are in local time there.
+      upsert: (w) => set((s) => ({ workplaces: [...s.workplaces.filter((x) => x.id !== w.id), WorkplaceSchema.parse({ ...w, tz: w.tz ?? deviceTimeZone() })] })),
       remove: (id) => set((s) => ({ workplaces: s.workplaces.filter((x) => x.id !== id) })),
       replaceAll: (workplaces) => set({ workplaces: z.array(WorkplaceSchema).parse(workplaces) }),
     }),

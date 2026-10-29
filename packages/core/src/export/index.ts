@@ -1,20 +1,7 @@
 /** Export to CSV (for spreadsheets / payroll) and JSON (full backup), and validated JSON import. */
 import { ExportFileSchema, type ExportFile, type Settings, type TimeEvent, type Workplace } from '../schema';
-import { buildSessions, effectiveEvents } from '../time/ledger';
-
-function local(ms: number, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(new Date(ms));
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
-  return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
-}
+import { buildSessions, effectiveEvents, sessionDay, sessionZone } from '../time/ledger';
+import { clockTime } from '../time/zone';
 
 const cell = (v: string | number) => {
   const s = String(v);
@@ -24,23 +11,24 @@ const cell = (v: string | number) => {
 export const CSV_HEADER = ['date', 'start', 'end', 'break_minutes', 'worked_minutes', 'worked_hours', 'workplace', 'source', 'time_zone'];
 
 /**
- * One row per work session, in the user's time zone. UTF-8 with BOM and CRLF so Excel, Numbers and
- * Google Sheets open it correctly. Open sessions are exported up to `now` with an empty end.
+ * One row per work session, in the zone it was recorded in (`timeZone` for sessions from before zones were
+ * stored): the date is the day the session started, so a night shift stays one row. UTF-8 with BOM and CRLF
+ * so Excel, Numbers and Google Sheets open it correctly. Open sessions are exported up to `now` with an empty end.
  */
 export function toCsv(events: TimeEvent[], workplaces: Workplace[], timeZone: string, now: number): string {
   const names = new Map(workplaces.map((w) => [w.id, w.name]));
   const rows = buildSessions(effectiveEvents(events), now).map((s) => {
-    const start = local(s.start, timeZone);
+    const tz = sessionZone(s, timeZone);
     return [
-      start.date,
-      start.time,
-      s.end !== undefined ? local(s.end, timeZone).time : '',
+      sessionDay(s, timeZone),
+      clockTime(s.start, tz),
+      s.end !== undefined ? clockTime(s.end, tz) : '',
       Math.round(s.breakMs / 60_000),
       Math.round(s.workedMs / 60_000),
       (s.workedMs / 3_600_000).toFixed(2),
       s.workplaceId ? (names.get(s.workplaceId) ?? '') : '',
       s.source,
-      timeZone,
+      tz,
     ];
   });
   return '﻿' + [CSV_HEADER, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';

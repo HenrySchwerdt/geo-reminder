@@ -17,6 +17,7 @@ import * as Location from 'expo-location';
 
 import { cancelReminder, showReminder } from '@/features/notifications';
 import { getWorkplaces } from '@/features/workplaces/store';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { logLocation, useGeofence } from './store';
 
 const getEngineState = () => useGeofence.getState().engine;
@@ -27,7 +28,7 @@ export const LOCATION_TASK = 'worktime-location';
 
 const config = (): EngineConfig => ({
   workplaces: getWorkplaces(),
-  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  timeZone: deviceTimeZone(),
 });
 
 // Background tasks can fire concurrently; decisions must be applied in order.

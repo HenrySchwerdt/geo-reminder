@@ -27,20 +27,20 @@ function describe(version: TimeEvent, previous?: TimeEvent): Pick<HistoryEntry, 
   const noun = NOUN[version.type];
   if (!previous) {
     const source = SOURCE[version.source];
-    return { title: `${VERB[version.type]} ${formatTime(version.at)}${source ? ` · ${source}` : ''}`, kind: 'created' };
+    return { title: `${VERB[version.type]} ${formatTime(version.at, version.tz)}${source ? ` · ${source}` : ''}`, kind: 'created' };
   }
-  if (version.voids) return { title: `${noun} deleted (was ${formatTime(previous.at)})`, kind: 'deleted' };
-  if (version.at !== previous.at) return { title: `${noun} changed ${formatTime(previous.at)} → ${formatTime(version.at)}`, kind: 'changed' };
+  if (version.voids) return { title: `${noun} deleted (was ${formatTime(previous.at, previous.tz)})`, kind: 'deleted' };
+  if (version.at !== previous.at) return { title: `${noun} changed ${formatTime(previous.at, previous.tz)} → ${formatTime(version.at, version.tz)}`, kind: 'changed' };
   if (version.workplaceId !== previous.workplaceId) return { title: `${noun}: workplace changed`, kind: 'changed' };
   return { title: `${noun} saved again`, kind: 'changed' };
 }
 
-/** Entries for every event chain that has a version inside [dayStart, dayEnd). */
-export function dayHistory(ledger: TimeEvent[], dayStart: number, dayEnd: number): HistoryEntry[] {
+/** Entries for every event chain that has a version inside [from, to). */
+export function dayHistory(ledger: TimeEvent[], from: number, to: number): HistoryEntry[] {
   const byId = new Map(ledger.map((e) => [e.id, e]));
   const roots = new Set<string>();
   for (const e of ledger) {
-    if (e.at < dayStart || e.at >= dayEnd) continue;
+    if (e.at < from || e.at >= to) continue;
     let root = e;
     while (root.supersedes) {
       const up = byId.get(root.supersedes);

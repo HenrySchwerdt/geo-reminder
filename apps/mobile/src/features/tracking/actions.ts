@@ -5,13 +5,17 @@
 import { type EventSource, type TimeEvent } from '@worktime/core';
 
 import { newId } from '@/shared/lib/id';
-import { daySummary } from './selectors';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
+import { currentState as stateOf } from './selectors';
 import { getLedger, useTracking } from './store';
 
-const append = (events: Omit<TimeEvent, 'id' | 'recordedAt'>[]) =>
-  useTracking.getState().append(events.map((e) => ({ ...e, id: newId(), recordedAt: Date.now() })));
+/** Appends events stamped with the zone they were recorded in (unless they carry one, like corrections). */
+const append = (events: Omit<TimeEvent, 'id' | 'recordedAt'>[]) => {
+  const tz = deviceTimeZone();
+  useTracking.getState().append(events.map((e) => ({ tz, ...e, id: newId(), recordedAt: Date.now() })));
+};
 
-const currentState = () => daySummary(getLedger(), Date.now(), Date.now());
+const currentState = () => stateOf(getLedger(), Date.now());
 
 async function notifyEngine(clockedIn: boolean, workplaceId?: string) {
   const { dispatch } = await import('@/features/geofencing/runner');
@@ -44,12 +48,12 @@ export function clockOut(at = Date.now(), source: EventSource = 'app') {
 
 /** Correct an event: appends a new version that supersedes it. */
 export function editEvent(target: TimeEvent, patch: Partial<Pick<TimeEvent, 'at' | 'workplaceId'>>) {
-  append([{ type: target.type, at: patch.at ?? target.at, workplaceId: patch.workplaceId ?? target.workplaceId, source: 'manual', supersedes: target.id }]);
+  append([{ type: target.type, at: patch.at ?? target.at, workplaceId: patch.workplaceId ?? target.workplaceId, source: 'manual', supersedes: target.id, ...(target.tz && { tz: target.tz }) }]);
 }
 
 /** Delete an event: appends a tombstone. */
 export function deleteEvent(target: TimeEvent) {
-  append([{ type: target.type, at: target.at, workplaceId: target.workplaceId, source: 'manual', supersedes: target.id, voids: true }]);
+  append([{ type: target.type, at: target.at, workplaceId: target.workplaceId, source: 'manual', supersedes: target.id, voids: true, ...(target.tz && { tz: target.tz }) }]);
 }
 
 /** Add a complete past session (missed day / forgotten clock-in), optionally with one break. */

@@ -1,15 +1,17 @@
-import { formatBalance, formatDuration } from '@worktime/core';
+import { formatBalance, formatDuration, minutesOfDay } from '@worktime/core';
 
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
 import { weekSummary } from '@/features/tracking/selectors';
 import { useTracking } from '@/features/tracking/store';
 import { useNow } from '@/shared/hooks/use-now';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { WeekBars } from '@/shared/ui/charts';
 import { Card, Row, Screen, Stat, Text } from '@/shared/ui/components';
 
-const avgTime = (xs: number[]) => {
+/** Average wall-clock time, each read in the zone it was recorded in (08:00 in Berlin and 08:00 in New York → 08:00). */
+const avgTime = (xs: { at: number; tz: string }[]) => {
   if (!xs.length) return '–';
-  const mins = xs.map((x) => new Date(x).getHours() * 60 + new Date(x).getMinutes());
+  const mins = xs.map((x) => minutesOfDay(x.at, x.tz));
   const m = Math.round(mins.reduce((a, b) => a + b, 0) / mins.length);
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
@@ -20,7 +22,8 @@ export default function Insights() {
   const weeklyHours = useSettings((s) => s.weeklyHours);
   const workdays = useSettings((s) => s.workdays);
   const target = dailyTargetMs({ weeklyHours, workdays });
-  const week = weekSummary(ledger, now, workdays, target);
+  const tz = deviceTimeZone();
+  const week = weekSummary(ledger, now, workdays, target, tz);
 
   return (
     <Screen title="Insights" subtitle="This week">
@@ -37,10 +40,10 @@ export default function Insights() {
       </Card>
       <Row>
         <Card style={{ flex: 1, padding: 16 }}>
-          <Stat label="Avg. start" value={avgTime(week.days.flatMap((d) => (d.firstIn ? [d.firstIn] : [])))} />
+          <Stat label="Avg. start" value={avgTime(week.days.flatMap((d) => (d.firstIn ? [{ at: d.firstIn, tz: d.tz ?? tz }] : [])))} />
         </Card>
         <Card style={{ flex: 1, padding: 16 }}>
-          <Stat label="Avg. end" value={avgTime(week.days.flatMap((d) => (d.lastOut ? [d.lastOut] : [])))} />
+          <Stat label="Avg. end" value={avgTime(week.days.flatMap((d) => (d.lastOut ? [{ at: d.lastOut, tz: d.tz ?? tz }] : [])))} />
         </Card>
       </Row>
       <Card style={{ padding: 16 }}>

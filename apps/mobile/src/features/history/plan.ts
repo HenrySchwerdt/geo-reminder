@@ -5,16 +5,21 @@
  */
 import {
   buildSessions,
+  dateKeyOf,
+  dayRange,
   effectiveEvents,
   requiredBreak,
-  summarize,
+  sessionDay,
+  sessionZone,
+  summarizeDay,
+  wallTime,
+  type DateKey,
   type EventType,
   type Session,
   type TimeEvent,
 } from '@worktime/core';
 
-import { dayBounds } from '@/features/tracking/selectors';
-import { countedEvents, incompleteDayStarts, targetFor, totalBalance, type Targets } from './balance';
+import { countedEvents, incompleteDays, targetFor, totalBalance, type Targets } from './balance';
 import { formatTime } from './dates';
 
 const MIN = 60_000;
@@ -38,6 +43,8 @@ export interface PlanEnv {
   now: number;
   newId: () => string;
   targets: Targets;
+  /** Where the phone is: decides "today", and the zone of sessions added by hand. */
+  tz: string;
 }
 
 export interface Fix {
@@ -74,8 +81,8 @@ export interface Plan {
   events: TimeEvent[];
   issues: Issue[];
   impact: Impact;
-  /** Start of the day the session belongs to. */
-  day: number;
+  /** The work day the session belongs to. */
+  day: DateKey;
 }
 
 // ───────────────────────────── drafts ─────────────────────────────
@@ -97,9 +104,9 @@ export function defaultBreak(start: number, end: number, ms = 30 * MIN): BreakDr
 }
 
 /** Draft for a day that has nothing yet: the usual start, the day's target plus the legally required break. */
-export function draftForNewDay(dayStart: number, t: Targets): SessionDraft {
-  const target = targetFor(dayStart, t) || t.dailyMs;
-  const start = new Date(dayStart).setHours(9, 0, 0, 0);
+export function draftForNewDay(day: DateKey, t: Targets, tz: string): SessionDraft {
+  const target = targetFor(day, t) || t.dailyMs;
+  const start = wallTime(day, 9 * 60, tz);
   const brk = requiredBreak(target);
   const end = start + target + brk;
   return { start, end, breaks: brk ? [defaultBreak(start, end, brk)] : [] };
@@ -109,10 +116,11 @@ export function draftForNewDay(dayStart: number, t: Targets): SessionDraft {
  * Completion proposed for a session that never got a check-out: the target length from its start, with the
  * required break. Capped so it stays inside the start's day and never lies in the future.
  */
-export function suggestCompletion(s: Session, now: number, t: Targets): SessionDraft {
-  const target = targetFor(dayBounds(s.start).start, t) || t.dailyMs;
+export function suggestCompletion(s: Session, now: number, t: Targets, tz: string): SessionDraft {
+  const day = sessionDay(s, tz);
+  const target = targetFor(day, t) || t.dailyMs;
   const brk = s.breaks.length ? 0 : requiredBreak(target);
-  const latest = Math.min(dayBounds(s.start).end - MIN, now);
+  const latest = Math.min(dayRange(day, sessionZone(s, tz)).end - MIN, now);
   const end = Math.max(s.start + MIN, Math.min(s.start + target + brk, latest));
   const draft = draftFromSession(s);
   draft.end = Math.round(end / MIN) * MIN;
@@ -122,8 +130,11 @@ export function suggestCompletion(s: Session, now: number, t: Targets): SessionD
 
 // ───────────────────────────── validation ─────────────────────────────
 
-/** Problems that make a draft unsavable. `others` are all stored sessions except the one being edited. */
-export function validateDraft(draft: SessionDraft, others: Session[], now: number, wasOpen: boolean): Issue[] {
+/**
+ * Problems that make a draft unsavable. `others` are all stored sessions except the one being edited;
+ * `tz` is the zone the session's times are shown in.
+ */
+export function validateDraft(draft: SessionDraft, others: Session[], now: number, wasOpen: boolean, tz: string): Issue[] {
   const issues: Issue[] = [];
   const { start, end } = draft;
 
@@ -148,11 +159,11 @@ export function validateDraft(draft: SessionDraft, others: Session[], now: numbe
       const to = Math.min(end, otherEnd);
       if (to <= from) continue;
       const fixes: Fix[] = [];
-      if (other.start > start) fixes.push({ label: `End this session at ${formatTime(other.start)}`, patch: { end: other.start } });
-      if (otherEnd < end && otherEnd > start) fixes.push({ label: `Start this session at ${formatTime(otherEnd)}`, patch: { start: otherEnd } });
+      if (other.start > start) fixes.push({ label: `End this session at ${formatTime(other.start, tz)}`, patch: { end: other.start } });
+      if (otherEnd < end && otherEnd > start) fixes.push({ label: `Start this session at ${formatTime(otherEnd, tz)}`, patch: { start: otherEnd } });
       issues.push({
         kind: 'overlap',
-        message: `${formatTime(from)}–${formatTime(to)} is counted twice. Adjust this session or the other one.`,
+        message: `${formatTime(from, tz)}–${formatTime(to, tz)} is counted twice. Adjust this session or the other one.`,
         fixes,
         conflict: { other, from, to },
       });
@@ -164,17 +175,17 @@ export function validateDraft(draft: SessionDraft, others: Session[], now: numbe
 // ───────────────────────────── impact ─────────────────────────────
 
 /** Figures of one day as the app counts them: a day with a missing check-out counts for nothing until fixed. */
-const dayFigures = (events: TimeEvent[], day: number, now: number, t: Targets) => {
+const dayFigures = (events: TimeEvent[], day: DateKey, now: number, t: Targets, tz: string) => {
   const effective = effectiveEvents(events);
-  const s = summarize(countedEvents(effective, now), day, dayBounds(day).end, now);
-  const counted = !incompleteDayStarts(effective, now).has(day);
+  const s = summarizeDay(countedEvents(effective, now, tz), day, now, tz);
+  const counted = !incompleteDays(effective, now, tz).has(day);
   return { worked: s.workedMs, breaks: s.breakMs, balance: counted ? s.workedMs - targetFor(day, t) : 0 };
 };
 
-export function impactOf(before: TimeEvent[], after: TimeEvent[], day: number, env: PlanEnv): Impact {
-  const b = dayFigures(before, day, env.now, env.targets);
-  const a = dayFigures(after, day, env.now, env.targets);
-  const counts = dayBounds(day).end <= env.now;
+export function impactOf(before: TimeEvent[], after: TimeEvent[], day: DateKey, env: PlanEnv): Impact {
+  const b = dayFigures(before, day, env.now, env.targets, env.tz);
+  const a = dayFigures(after, day, env.now, env.targets, env.tz);
+  const counts = day < dateKeyOf(env.now, env.tz);
   return {
     workedBefore: b.worked,
     workedAfter: a.worked,
@@ -182,8 +193,8 @@ export function impactOf(before: TimeEvent[], after: TimeEvent[], day: number, e
     breakAfter: a.breaks,
     dayBalanceBefore: b.balance,
     dayBalanceAfter: a.balance,
-    totalBefore: counts ? totalBalance(before, env.now, env.targets) : 0,
-    totalAfter: counts ? totalBalance(after, env.now, env.targets) : 0,
+    totalBefore: counts ? totalBalance(before, env.now, env.targets, env.tz) : 0,
+    totalAfter: counts ? totalBalance(after, env.now, env.targets, env.tz) : 0,
     countsTowardsTotal: counts,
     breakShortfallMs: Math.max(0, requiredBreak(a.worked) - a.breaks),
   };
@@ -191,11 +202,12 @@ export function impactOf(before: TimeEvent[], after: TimeEvent[], day: number, e
 
 // ───────────────────────────── planning ─────────────────────────────
 
-type EventExtras = Partial<Pick<TimeEvent, 'workplaceId' | 'supersedes' | 'voids'>>;
+type EventExtras = Partial<Pick<TimeEvent, 'workplaceId' | 'supersedes' | 'voids' | 'tz'>>;
 
-function eventFactory(env: PlanEnv) {
+/** Event constructors; new events are recorded in `zone`, the zone of the session they belong to. */
+function eventFactory(env: PlanEnv, zone: string) {
   const fresh = (type: EventType, at: number, extras: EventExtras = {}): TimeEvent => {
-    const e: TimeEvent = { id: env.newId(), type, at, source: 'manual', recordedAt: env.now };
+    const e: TimeEvent = { id: env.newId(), type, at, source: 'manual', recordedAt: env.now, tz: extras.tz ?? zone };
     if (extras.workplaceId !== undefined) e.workplaceId = extras.workplaceId;
     if (extras.supersedes !== undefined) e.supersedes = extras.supersedes;
     if (extras.voids) e.voids = true;
@@ -203,9 +215,9 @@ function eventFactory(env: PlanEnv) {
   };
   /** A new version of `target` with other values. */
   const supersede = (target: TimeEvent, at: number, workplaceId = target.workplaceId) =>
-    fresh(target.type, at, { workplaceId, supersedes: target.id });
+    fresh(target.type, at, { workplaceId, supersedes: target.id, tz: target.tz });
   /** A tombstone that removes `target`. */
-  const void_ = (target: TimeEvent) => fresh(target.type, target.at, { workplaceId: target.workplaceId, supersedes: target.id, voids: true });
+  const void_ = (target: TimeEvent) => fresh(target.type, target.at, { workplaceId: target.workplaceId, supersedes: target.id, voids: true, tz: target.tz });
   return { fresh, supersede, void_ };
 }
 
@@ -228,7 +240,7 @@ function partsOf(session: Session, effective: TimeEvent[]) {
   };
 }
 
-const finish = (ledger: TimeEvent[], events: TimeEvent[], issues: Issue[], day: number, env: PlanEnv): Plan => ({
+const finish = (ledger: TimeEvent[], events: TimeEvent[], issues: Issue[], day: DateKey, env: PlanEnv): Plan => ({
   events,
   issues,
   day,
@@ -241,7 +253,8 @@ export function planSessionEdit(ledger: TimeEvent[], sessionId: string, draft: S
   if (!session) return undefined;
   const { clockIn, clockOut, breakStarts, breakEnds } = partsOf(session, effective);
   if (!clockIn) return undefined;
-  const { fresh, supersede, void_ } = eventFactory(env);
+  const zone = sessionZone(session, env.tz);
+  const { fresh, supersede, void_ } = eventFactory(env, zone);
   const events: TimeEvent[] = [];
 
   if (draft.start !== clockIn.at || draft.workplaceId !== clockIn.workplaceId) {
@@ -282,13 +295,13 @@ export function planSessionEdit(ledger: TimeEvent[], sessionId: string, draft: S
   }
 
   const others = sessions.filter((s) => s.id !== session.id);
-  const issues = validateDraft(draft, others, env.now, session.end === undefined);
-  return finish(ledger, issues.length ? [] : events, issues, dayBounds(session.start).start, env);
+  const issues = validateDraft(draft, others, env.now, session.end === undefined, zone);
+  return finish(ledger, issues.length ? [] : events, issues, sessionDay(session, env.tz), env);
 }
 
 /** Plan a complete session added by hand (a missed day or a forgotten check-in). */
 export function planNewSession(ledger: TimeEvent[], draft: SessionDraft, env: PlanEnv): Plan {
-  const { fresh } = eventFactory(env);
+  const { fresh } = eventFactory(env, env.tz);
   const events: TimeEvent[] = [fresh('clockIn', draft.start, { workplaceId: draft.workplaceId })];
   for (const b of [...draft.breaks].sort((x, y) => x.start - y.start)) {
     events.push(fresh('breakStart', b.start));
@@ -297,18 +310,18 @@ export function planNewSession(ledger: TimeEvent[], draft: SessionDraft, env: Pl
   if (draft.end !== undefined) events.push(fresh('clockOut', draft.end));
 
   const sessions = buildSessions(effectiveEvents(ledger), env.now);
-  const issues = validateDraft(draft, sessions, env.now, false);
-  return finish(ledger, issues.length ? [] : events, issues, dayBounds(draft.start).start, env);
+  const issues = validateDraft(draft, sessions, env.now, false, env.tz);
+  return finish(ledger, issues.length ? [] : events, issues, dateKeyOf(draft.start, env.tz), env);
 }
 
 /** Plan the removal of a whole session: a tombstone for each of its events. */
 export function planDeleteSession(ledger: TimeEvent[], sessionId: string, env: PlanEnv): (Plan & { removedMs: number }) | undefined {
   const { effective, session } = sessionOf(ledger, sessionId, env.now);
   if (!session) return undefined;
-  const { void_ } = eventFactory(env);
+  const { void_ } = eventFactory(env, sessionZone(session, env.tz));
   const byId = new Map(effective.map((e) => [e.id, e]));
   const events = session.eventIds.flatMap((id) => byId.get(id) ?? []).map(void_);
-  return { ...finish(ledger, events, [], dayBounds(session.start).start, env), removedMs: session.workedMs };
+  return { ...finish(ledger, events, [], sessionDay(session, env.tz), env), removedMs: session.workedMs };
 }
 
 /**
@@ -323,8 +336,19 @@ export function planUndo(ledger: TimeEvent[], appended: TimeEvent[], env: Pick<P
     if (previous) {
       const restored: TimeEvent = { ...base, type: previous.type, at: previous.at, supersedes: e.id };
       if (previous.workplaceId !== undefined) restored.workplaceId = previous.workplaceId;
+      if (previous.tz !== undefined) restored.tz = previous.tz;
       return [restored];
     }
-    return [{ ...base, type: e.type, at: e.at, supersedes: e.id, voids: true, ...(e.workplaceId !== undefined && { workplaceId: e.workplaceId }) }];
+    return [
+      {
+        ...base,
+        type: e.type,
+        at: e.at,
+        supersedes: e.id,
+        voids: true,
+        ...(e.workplaceId !== undefined && { workplaceId: e.workplaceId }),
+        ...(e.tz !== undefined && { tz: e.tz }),
+      },
+    ];
   });
 }

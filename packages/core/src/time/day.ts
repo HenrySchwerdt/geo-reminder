@@ -4,6 +4,8 @@
  */
 
 import type { TimeEvent } from '../schema';
+import { buildSessions, sessionDay, type Session } from './ledger';
+import type { DateKey } from './zone';
 
 export type WorkState = 'off' | 'working' | 'break';
 
@@ -86,6 +88,45 @@ export function summarize(events: TimeEvent[], from: number, to: number, now: nu
     segments,
     firstIn,
     lastOut,
+  };
+}
+
+/** Work and break segments of one session, open parts running until `now`. */
+export function sessionSegments(s: Session, now: number): Segment[] {
+  const stop = s.end ?? now;
+  const segments: Segment[] = [];
+  let cursor = s.start;
+  for (const b of s.breaks) {
+    if (b.start > cursor) segments.push({ from: cursor, to: b.start, kind: 'work', workplaceId: s.workplaceId });
+    const bEnd = b.end ?? stop;
+    if (bEnd > b.start) segments.push({ from: b.start, to: bEnd, kind: 'break', workplaceId: s.workplaceId });
+    cursor = Math.max(cursor, bEnd);
+  }
+  if (stop > cursor) segments.push({ from: cursor, to: stop, kind: 'work', workplaceId: s.workplaceId });
+  return segments;
+}
+
+/**
+ * The work day `day`: every session whose clock-in falls on it (in the session's own zone, `fallbackTz` for
+ * sessions recorded before zones were stored). Sessions are never split at midnight, so a night shift counts
+ * fully towards the day it started. `state` reflects a session of this day that is still running.
+ */
+export function summarizeDay(events: TimeEvent[], day: DateKey, now: number, fallbackTz: string): DaySummary & { sessions: Session[] } {
+  const sessions = buildSessions(events, now).filter((s) => sessionDay(s, fallbackTz) === day);
+  const running = sessions.find((s) => s.end === undefined);
+  const openBreak = running?.breaks.find((b) => b.end === undefined);
+  const lastBreakEnd = running?.breaks.at(-1)?.end;
+  const ends = sessions.flatMap((s) => (s.end !== undefined ? [s.end] : []));
+  return {
+    state: running ? (openBreak ? 'break' : 'working') : 'off',
+    since: running ? (openBreak?.start ?? lastBreakEnd ?? running.start) : undefined,
+    workplaceId: running?.workplaceId,
+    workedMs: sessions.reduce((t, s) => t + s.workedMs, 0),
+    breakMs: sessions.reduce((t, s) => t + s.breakMs, 0),
+    segments: sessions.flatMap((s) => sessionSegments(s, now)),
+    firstIn: sessions[0]?.start,
+    lastOut: ends.length ? Math.max(...ends) : undefined,
+    sessions,
   };
 }
 

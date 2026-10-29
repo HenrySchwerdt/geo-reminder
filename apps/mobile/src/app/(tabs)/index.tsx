@@ -1,16 +1,16 @@
-import { expectedEnd, formatBalance, formatDuration } from '@worktime/core';
+import { dayRange, expectedEnd, formatBalance, formatDuration, sessionZone, zoneCity } from '@worktime/core';
 import { View } from 'react-native';
 
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
 import { clockIn, clockOut, endBreak, startBreak } from '@/features/tracking/actions';
-import { daySummary, weekSummary } from '@/features/tracking/selectors';
+import { formatDayFull, formatTime } from '@/features/history/dates';
+import { currentDay, daySummary, weekSummary } from '@/features/tracking/selectors';
 import { useTracking } from '@/features/tracking/store';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { useNow } from '@/shared/hooks/use-now';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { DayRibbon, WeekBars } from '@/shared/ui/charts';
 import { Button, Card, Icon, Row, Screen, Stat, StatusPill, Text } from '@/shared/ui/components';
-
-const time = (ms?: number) => (ms ? new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '–');
 
 export default function Today() {
   const now = useNow(1000);
@@ -21,12 +21,19 @@ export default function Today() {
   const workplaces = useWorkplaces((s) => s.workplaces);
 
   const target = dailyTargetMs({ weeklyHours, workdays });
-  const today = daySummary(ledger, now, now);
-  const week = weekSummary(ledger, minute, workdays, target);
+  const tz = deviceTimeZone();
+  // A night shift stays on the day it started until it ends.
+  const day = currentDay(ledger, now, tz);
+  const today = daySummary(ledger, day, now, tz);
+  const running = today.sessions.find((s) => s.end === undefined);
+  // Times of the running session stay in the zone it started in, even after a flight.
+  const zone = running ? sessionZone(running, tz) : tz;
+  const time = (ms?: number) => (ms ? formatTime(ms, zone) : '–');
+  const week = weekSummary(ledger, minute, workdays, target, tz);
   const workplace = workplaces.find((w) => w.id === today.workplaceId);
   const end = expectedEnd(today, target, now);
   const shown = today.state === 'break' ? now - (today.since ?? now) : today.workedMs;
-  const date = new Date(now).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  const date = formatDayFull(day);
 
   return (
     <Screen title="Today" subtitle={date}>
@@ -61,13 +68,22 @@ export default function Today() {
           </Text>
         </View>
 
-        <DayRibbon dayStart={today.start} segments={today.segments} now={now} plannedEnd={end} />
+        <DayRibbon dayStart={dayRange(day, zone).start} segments={today.segments} now={now} plannedEnd={end} />
 
         {today.state !== 'off' ? (
           <Row>
             <Stat label="Remaining" value={formatDuration(Math.max(0, target - today.workedMs), true)} />
             <Stat label="Expected end" value={time(end)} />
             <Stat label="Today" value={`${Math.round((today.workedMs / target) * 100)}%`} color="accent" />
+          </Row>
+        ) : null}
+
+        {running && zone !== tz ? (
+          <Row gap={10} style={{ alignItems: 'flex-start' }}>
+            <Icon name="location" size={18} color="accent" />
+            <Text variant="footnote" color="text/secondary" style={{ flex: 1 }}>
+              {`You're now in ${zoneCity(tz)} time. This session started in ${zoneCity(zone)} and counts towards ${date}; its times are shown in ${zoneCity(zone)} time.`}
+            </Text>
           </Row>
         ) : null}
 

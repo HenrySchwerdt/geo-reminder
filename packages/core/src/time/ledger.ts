@@ -8,6 +8,7 @@
  * versions behind one event for the "History" list.
  */
 import type { TimeEvent } from '../schema';
+import { dateKeyOf, type DateKey } from './zone';
 
 export function effectiveEvents(events: TimeEvent[]): TimeEvent[] {
   const replaced = new Set<string>();
@@ -36,6 +37,8 @@ export interface Session {
   end?: number;
   workplaceId?: string;
   source: TimeEvent['source'];
+  /** Zone of the clock-in: the session's day and displayed times are in it. */
+  tz?: string;
   breaks: { start: number; end?: number }[];
   workedMs: number;
   breakMs: number;
@@ -62,7 +65,7 @@ export function buildSessions(events: TimeEvent[], now: number): Session[] {
           close(cur, e.at);
           sessions.push(cur);
         }
-        cur = { id: e.id, start: e.at, workplaceId: e.workplaceId, source: e.source, breaks: [], workedMs: 0, breakMs: 0, eventIds: [e.id] };
+        cur = { id: e.id, start: e.at, workplaceId: e.workplaceId, source: e.source, tz: e.tz, breaks: [], workedMs: 0, breakMs: 0, eventIds: [e.id] };
         break;
       case 'breakStart':
         if (cur && !cur.breaks.some((b) => b.end === undefined)) {
@@ -93,4 +96,19 @@ export function buildSessions(events: TimeEvent[], now: number): Session[] {
     sessions.push(cur);
   }
   return sessions;
+}
+
+/** Zone a session is kept in: where it was clocked in, or `fallbackTz` for events from before zones were recorded. */
+export const sessionZone = (s: Pick<Session, 'tz'>, fallbackTz: string) => s.tz ?? fallbackTz;
+
+/**
+ * The work day a session belongs to: the calendar day of its clock-in, in the zone it was clocked in.
+ * A night shift counts entirely to the day it started; a trip abroad doesn't move past days.
+ */
+export const sessionDay = (s: Pick<Session, 'start' | 'tz'>, fallbackTz: string): DateKey => dateKeyOf(s.start, sessionZone(s, fallbackTz));
+
+/** The session running at `now`, if any (the last one, when it has no end). */
+export function runningSession(events: TimeEvent[], now: number): Session | undefined {
+  const last = buildSessions(events, now).at(-1);
+  return last && last.end === undefined ? last : undefined;
 }

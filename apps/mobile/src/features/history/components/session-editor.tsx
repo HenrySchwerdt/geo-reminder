@@ -1,19 +1,19 @@
 /** Edit an existing session, or add a missed one, with a live preview of what the correction changes. */
-import { buildSessions, effectiveEvents, formatBalance, formatDuration } from '@worktime/core';
+import { buildSessions, dateKeyOf, effectiveEvents, formatBalance, formatDuration, sessionDay, sessionZone } from '@worktime/core';
 import { router, Stack } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, Platform, Pressable, View } from 'react-native';
 
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
-import { dayBounds } from '@/features/tracking/selectors';
 import { getLedger, useTracking } from '@/features/tracking/store';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { useNow } from '@/shared/hooks/use-now';
 import { newId } from '@/shared/lib/id';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { radius, space, useColors } from '@/shared/theme';
 import { Button, Card, Chips, Group, Icon, ListRow, Row, Screen, SectionHeader, Text } from '@/shared/ui/components';
 import { findIncomplete, type Targets } from '../balance';
-import { formatDayLong, formatTime, moveToDay } from '../dates';
+import { formatDayLong, formatTime, moveToDay, toDateKey, zoneNote, type DateKey } from '../dates';
 import { UNDO_MS, commit } from '../last-change';
 import {
   defaultBreak,
@@ -27,7 +27,7 @@ import {
   type SessionDraft,
 } from '../plan';
 import { ImpactCard } from './impact-card';
-import { TimeField } from './time-field';
+import { DateField, TimeField } from './time-field';
 
 const MIN = 60_000;
 
@@ -84,7 +84,7 @@ function IssueCard({ issue, onFix, others }: { issue: Issue; onFix: (patch: NonN
   );
 }
 
-export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; initialDay?: number }) {
+export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; initialDay?: DateKey }) {
   const now = useNow(30_000);
   const ledger = useTracking((s) => s.ledger);
   const weeklyHours = useSettings((s) => s.weeklyHours);
@@ -93,7 +93,8 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
   const isNew = sessionId === undefined;
 
   const targets = useMemo<Targets>(() => ({ workdays, dailyMs: dailyTargetMs({ weeklyHours, workdays }) }), [weeklyHours, workdays]);
-  const env = useMemo(() => ({ now, newId, targets }), [now, targets]);
+  const tz = deviceTimeZone();
+  const env = useMemo(() => ({ now, newId, targets, tz }), [now, targets, tz]);
 
   // The session as it was when the editor opened; the draft starts from it and "changed" is measured against it.
   const [original] = useState(() => {
@@ -101,11 +102,13 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
     const t = Date.now();
     const effective = effectiveEvents(getLedger());
     const session = buildSessions(effective, t).find((s) => s.id === sessionId);
-    return session && { session, incomplete: findIncomplete(effective, t).some((s) => s.id === session.id) };
+    return session && { session, incomplete: findIncomplete(effective, t, tz).some((s) => s.id === session.id) };
   });
+  // Times are edited in the zone the session was recorded in; new sessions are in the phone's zone.
+  const [zone] = useState(() => (original ? sessionZone(original.session, tz) : tz));
   const [draft, setDraft] = useState<SessionDraft | undefined>(() => {
-    if (original) return original.incomplete ? suggestCompletion(original.session, Date.now(), targets) : draftFromSession(original.session);
-    return isNew ? draftForNewDay(initialDay ?? dayBounds(Date.now()).start, targets) : undefined;
+    if (original) return original.incomplete ? suggestCompletion(original.session, Date.now(), targets, tz) : draftFromSession(original.session);
+    return isNew ? draftForNewDay(initialDay ?? toDateKey(Date.now(), tz), targets, tz) : undefined;
   });
   const [done, setDone] = useState(false);
 
@@ -131,10 +134,11 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
   const set = (patch: Partial<SessionDraft>) => setDraft((d) => d && { ...d, ...patch });
   const setBreak = (i: number, patch: Partial<SessionDraft['breaks'][number]>) =>
     setDraft((d) => d && { ...d, breaks: d.breaks.map((b, j) => (j === i ? { ...b, ...patch } : b)) });
-  const moveDate = (ms: number) => {
-    const day = dayBounds(ms).start;
-    setDraft((d) => d && { ...d, start: moveToDay(d.start, day), end: d.end && moveToDay(d.end, day), breaks: d.breaks.map((b) => ({ ...b, start: moveToDay(b.start, day), end: b.end && moveToDay(b.end, day) })) });
+  const moveDate = (day: DateKey) => {
+    const move = (ms: number) => moveToDay(ms, day, zone);
+    setDraft((d) => d && { ...d, start: move(d.start), end: d.end && move(d.end), breaks: d.breaks.map((b) => ({ ...b, start: move(b.start), end: b.end && move(b.end) })) });
   };
+  const note = zoneNote(zone);
 
   const canSave = plan.issues.length === 0 && plan.events.length > 0;
   const balanceLabel = formatBalance(plan.impact.countsTowardsTotal ? plan.impact.totalAfter : plan.impact.dayBalanceAfter);
@@ -189,10 +193,10 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
           <Row gap={space.s}>
             <Icon name="warning" size={18} color="break" />
             <Text variant="headline" color="break">
-              {formatDayLong(original.session.start)}
+              {formatDayLong(sessionDay(original.session, tz))}
             </Text>
           </Row>
-          <Text variant="subhead">{`You clocked in at ${formatTime(original.session.start)} but no check-out was recorded. We suggest an end time; adjust it if needed.`}</Text>
+          <Text variant="subhead">{`You clocked in at ${formatTime(original.session.start, zone)} but no check-out was recorded. We suggest an end time; adjust it if needed.`}</Text>
         </Card>
       ) : null}
 
@@ -204,8 +208,8 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
           others={
             issue.conflict ? (
               <View style={{ gap: 2, marginTop: space.xs }}>
-                <Text variant="footnote" color="text/secondary">{`Other session  ${formatTime(issue.conflict.other.start)} – ${issue.conflict.other.end ? formatTime(issue.conflict.other.end) : 'running'}`}</Text>
-                <Text variant="footnote" color="text/secondary">{`This session  ${formatTime(draft.start)} – ${draft.end ? formatTime(draft.end) : 'running'}`}</Text>
+                <Text variant="footnote" color="text/secondary">{`Other session  ${formatTime(issue.conflict.other.start, zone)} – ${issue.conflict.other.end ? formatTime(issue.conflict.other.end, zone) : 'running'}`}</Text>
+                <Text variant="footnote" color="text/secondary">{`This session  ${formatTime(draft.start, zone)} – ${draft.end ? formatTime(draft.end, zone) : 'running'}`}</Text>
               </View>
             ) : null
           }
@@ -226,29 +230,35 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
           <ListRow
             title="Date"
             icon="calendar"
-            accessory={<TimeField mode="date" label="Date" value={draft.start} maximumDate={new Date(now)} onChange={moveDate} />}
+            accessory={<DateField label="Date" value={dateKeyOf(draft.start, zone)} maximum={toDateKey(now, tz)} onChange={moveDate} />}
           />
         ) : null}
         <ListRow
           title="Starts"
-          subtitle={isNew ? undefined : formatDayLong(draft.start)}
+          subtitle={isNew ? undefined : formatDayLong(dateKeyOf(draft.start, zone))}
           icon="signIn"
-          accessory={<TimeField label="Start time" value={draft.start} changed={changed.start} onChange={(start) => set({ start })} />}
+          accessory={<TimeField label="Start time" value={draft.start} tz={zone} changed={changed.start} onChange={(start) => set({ start })} />}
         />
         <ListRow
           title="Ends"
-          subtitle={changed.end && stored?.end ? `was ${formatTime(stored.end)}` : undefined}
+          subtitle={changed.end && stored?.end ? `was ${formatTime(stored.end, zone)}` : undefined}
           icon="signOut"
           last
           accessory={
             draft.end === undefined ? (
               <ChipButton label="Still running" onPress={() => set({ end: Math.floor(now / MIN) * MIN })} />
             ) : (
-              <TimeField label="End time" value={draft.end} changed={changed.end} onChange={(end) => set({ end })} />
+              <TimeField label="End time" value={draft.end} tz={zone} changed={changed.end} onChange={(end) => set({ end })} />
             )
           }
         />
       </Group>
+
+      {note ? (
+        <Text variant="footnote" color="text/secondary">
+          {`Times are in ${note}, where this session was recorded.`}
+        </Text>
+      ) : null}
 
       <SectionHeader>Breaks</SectionHeader>
       <Group>
@@ -261,11 +271,11 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
             tint="break"
             accessory={
               <Row gap={space.xs}>
-                <TimeField label={`Break ${i + 1} start`} value={b.start} onChange={(start) => setBreak(i, { start })} />
+                <TimeField label={`Break ${i + 1} start`} value={b.start} tz={zone} onChange={(start) => setBreak(i, { start })} />
                 {b.end === undefined ? (
                   <ChipButton label="Ongoing" onPress={() => setBreak(i, { end: Math.floor(now / MIN) * MIN })} />
                 ) : (
-                  <TimeField label={`Break ${i + 1} end`} value={b.end} onChange={(end) => setBreak(i, { end })} />
+                  <TimeField label={`Break ${i + 1} end`} value={b.end} tz={zone} onChange={(end) => setBreak(i, { end })} />
                 )}
                 <Pressable
                   accessibilityRole="button"

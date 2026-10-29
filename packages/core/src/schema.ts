@@ -36,6 +36,8 @@ export const WorkplaceSchema = z.object({
   /** Geofence radius in metres. */
   radius: z.number().min(50).max(2_000),
   rules: ReminderRulesSchema,
+  /** IANA zone of the workplace: reminder windows and weekdays are in its local time. Device zone when absent. */
+  tz: z.string().optional(),
 });
 
 export const EventTypeSchema = z.enum(['clockIn', 'breakStart', 'breakEnd', 'clockOut']);
@@ -58,6 +60,11 @@ export const TimeEventSchema = z.object({
   supersedes: z.string().optional(),
   /** True for a tombstone that removes `supersedes` (a deletion). */
   voids: z.boolean().optional(),
+  /**
+   * IANA zone the event was recorded in. A session belongs to the calendar day of its clock-in in this zone and
+   * is shown in it, wherever the phone is later. Absent on events from older versions: the device zone is used.
+   */
+  tz: z.string().optional(),
 });
 
 export const SettingsSchema = z.object({

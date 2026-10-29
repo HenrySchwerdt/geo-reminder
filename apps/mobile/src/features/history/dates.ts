@@ -1,56 +1,48 @@
-/** Local-calendar helpers. Dates travel through routes as `YYYY-MM-DD` keys and through state as epoch ms. */
+/**
+ * Calendar helpers for the UI. Days travel through routes and state as `YYYY-MM-DD` keys, instants as epoch
+ * ms; every conversion names its zone, so nothing silently follows the phone when it changes zone.
+ */
+import { clockTime, dateKeyOf, minutesOfDay, parseKey, wallTime, zoneCity, type DateKey } from '@worktime/core';
 
-const pad = (n: number) => String(n).padStart(2, '0');
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 
-export const toDateKey = (ms: number) => {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
+export type { DateKey };
 
-/** Local midnight of a `YYYY-MM-DD` key, or undefined when the key is malformed or not a real date. */
-export function parseDateKey(key: string | undefined): number | undefined {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key ?? '');
-  if (!m) return undefined;
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const date = new Date(y, mo - 1, d);
-  return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d ? date.getTime() : undefined;
-}
+/** The calendar day an instant falls on, in `tz` (default: where the phone is). */
+export const toDateKey = (ms: number, tz = deviceTimeZone()) => dateKeyOf(ms, tz);
 
-/** 24-hour "08:52", independent of the device locale so lists, pickers and previews line up. */
-export const formatTime = (ms: number) => {
-  const d = new Date(ms);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+/** The key itself when it is a real date, else undefined. */
+export const parseDateKey = (key: string | undefined): DateKey | undefined => (parseKey(key) ? key : undefined);
+
+/** 24-hour "08:52" in `tz`, independent of the device locale so lists, pickers and previews line up. */
+export const formatTime = (ms: number, tz = deviceTimeZone()) => clockTime(ms, tz);
+
+/** "Berlin time" when `tz` is not the zone the phone is in, so times recorded elsewhere aren't misread. */
+export const zoneNote = (tz: string | undefined) => (tz && tz !== deviceTimeZone() ? `${zoneCity(tz)} time` : undefined);
+
+/** Format a calendar day without any zone shifting it (noon UTC is on the same date everywhere it's shown as UTC). */
+const formatKey = (key: DateKey, options: Intl.DateTimeFormatOptions) => {
+  const p = parseKey(key)!;
+  return new Date(Date.UTC(p.year, p.month - 1, p.day, 12)).toLocaleDateString([], { ...options, timeZone: 'UTC' });
 };
 
 /** "Tue, 14 October" */
-export const formatDayLong = (ms: number) => new Date(ms).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'long' });
+export const formatDayLong = (key: DateKey) => formatKey(key, { weekday: 'short', day: 'numeric', month: 'long' });
 
 /** "Tue, 14 Oct" */
-export const formatDayShort = (ms: number) => new Date(ms).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+export const formatDayShort = (key: DateKey) => formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' });
 
-/** "15 Oct, 09:02" */
-export const formatStamp = (ms: number) => `${new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${formatTime(ms)}`;
+/** "Tuesday, 14 October" */
+export const formatDayFull = (key: DateKey) => formatKey(key, { weekday: 'long', day: 'numeric', month: 'long' });
 
-/** Same calendar day as `base`, at the given wall-clock time (seconds cleared). */
-export function setTimeOfDay(base: number, hours: number, minutes: number) {
-  const d = new Date(base);
-  d.setHours(hours, minutes, 0, 0);
-  return d.getTime();
-}
+/** "October 2025" */
+export const formatMonth = (key: DateKey) => formatKey(key, { month: 'long', year: 'numeric' });
 
-/** Keep the wall-clock time of `ms` but move it onto the calendar day starting at `dayStart`. */
-export function moveToDay(ms: number, dayStart: number) {
-  const t = new Date(ms);
-  const d = new Date(dayStart);
-  d.setHours(t.getHours(), t.getMinutes(), 0, 0);
-  return d.getTime();
-}
+/** "15 Oct, 09:02" — when a change was made, where the phone is now. */
+export const formatStamp = (ms: number) => `${formatKey(toDateKey(ms), { day: 'numeric', month: 'short' })}, ${formatTime(ms)}`;
 
-/** First day of the month containing `ms`, offset by whole months. */
-export const monthStart = (ms: number, offset = 0) => {
-  const d = new Date(ms);
-  return new Date(d.getFullYear(), d.getMonth() + offset, 1).getTime();
-};
+/** Same calendar day as `base` in `tz`, at the given wall-clock time there (seconds cleared). */
+export const setTimeOfDay = (base: number, hours: number, minutes: number, tz: string) => wallTime(dateKeyOf(base, tz), hours * 60 + minutes, tz);
 
-/** ISO weekday: 1 (Mon) … 7 (Sun). */
-export const isoWeekday = (ms: number) => ((new Date(ms).getDay() + 6) % 7) + 1;
+/** Keep the wall-clock time of `ms` in `tz` but move it onto `day`. */
+export const moveToDay = (ms: number, day: DateKey, tz: string) => wallTime(day, minutesOfDay(ms, tz), tz);

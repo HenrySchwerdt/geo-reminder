@@ -6,8 +6,8 @@ import { Card, Screen, Text } from '@/shared/ui/components';
 
 export default function DayRoute() {
   const { date } = useLocalSearchParams<{ date: string }>();
-  const dayStart = parseDateKey(date);
-  if (dayStart === undefined) {
+  const day = parseDateKey(date);
+  if (day === undefined) {
     return (
       <Screen>
         <Card>
@@ -17,5 +17,5 @@ export default function DayRoute() {
       </Screen>
     );
   }
-  return <DayDetails dayStart={dayStart} />;
+  return <DayDetails day={day} />;
 }

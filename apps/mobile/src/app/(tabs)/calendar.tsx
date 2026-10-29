@@ -1,4 +1,4 @@
-import { effectiveEvents, formatBalance, formatDuration } from '@worktime/core';
+import { addMonths, effectiveEvents, formatBalance, formatDuration, sessionDay, sessionZone } from '@worktime/core';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -7,11 +7,12 @@ import { findIncomplete, type Targets } from '@/features/history/balance';
 import { buildMonth } from '@/features/history/calendar';
 import { UndoBanner } from '@/features/history/components/undo-banner';
 import { Legend, MonthGrid } from '@/features/history/components/month-grid';
-import { formatDayLong, formatTime, monthStart, toDateKey } from '@/features/history/dates';
+import { formatDayLong, formatMonth, formatTime, toDateKey } from '@/features/history/dates';
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
 import { useTracking } from '@/features/tracking/store';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { useNow } from '@/shared/hooks/use-now';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { space, useColors } from '@/shared/theme';
 import { Card, Icon, Row, Screen, Text } from '@/shared/ui/components';
 
@@ -47,33 +48,35 @@ export default function Calendar() {
   const weeklyHours = useSettings((s) => s.weeklyHours);
   const workdays = useSettings((s) => s.workdays);
   const workplaces = useWorkplaces((s) => s.workplaces);
-  const [month, setMonth] = useState(() => monthStart(Date.now()));
+  const tz = deviceTimeZone();
+  const thisMonth = addMonths(toDateKey(now, tz), 0);
+  const [month, setMonth] = useState(thisMonth);
   const [selected, setSelected] = useState<string>();
 
   const targets = useMemo<Targets>(() => ({ workdays, dailyMs: dailyTargetMs({ weeklyHours, workdays }) }), [weeklyHours, workdays]);
-  const model = useMemo(() => buildMonth(ledger, month, now, targets, selected), [ledger, month, now, targets, selected]);
+  const model = useMemo(() => buildMonth(ledger, month, now, targets, tz, selected), [ledger, month, now, targets, tz, selected]);
   // The most recent past session without a check-out.
-  const incomplete = useMemo(() => findIncomplete(effectiveEvents(ledger), now).at(-1), [ledger, now]);
+  const incomplete = useMemo(() => findIncomplete(effectiveEvents(ledger), now, tz).at(-1), [ledger, now, tz]);
+  const incompleteDay = incomplete && sessionDay(incomplete, tz);
 
-  const thisMonth = monthStart(now);
-  const title = new Date(month).toLocaleDateString([], { month: 'long', year: 'numeric' });
+  const title = formatMonth(month);
   const workplace = workplaces.find((w) => w.id === incomplete?.workplaceId);
 
   return (
     <Screen
       title="Calendar"
       trailing={
-        <RoundButton icon="calendarAdd" label="Add a missed session" onPress={() => router.push({ pathname: '/session/[id]', params: { id: 'new', date: toDateKey(Date.now()) } })} />
+        <RoundButton icon="calendarAdd" label="Add a missed session" onPress={() => router.push({ pathname: '/session/[id]', params: { id: 'new', date: toDateKey(Date.now(), tz) } })} />
       }>
       <UndoBanner />
 
       <Row style={{ justifyContent: 'space-between' }}>
-        <RoundButton icon="back" label="Previous month" onPress={() => setMonth(monthStart(month, -1))} />
+        <RoundButton icon="back" label="Previous month" onPress={() => setMonth(addMonths(month, -1))} />
         <View style={{ alignItems: 'center', flex: 1 }}>
           <Text variant="headline">{title}</Text>
           <Text variant="subhead" color="text/secondary">{`${formatDuration(model.workedMs, true)} · balance ${formatBalance(model.balanceMs)}`}</Text>
         </View>
-        <RoundButton icon="chevron" label="Next month" disabled={month >= thisMonth} onPress={() => setMonth(monthStart(month, 1))} />
+        <RoundButton icon="chevron" label="Next month" disabled={month >= thisMonth} onPress={() => setMonth(addMonths(month, 1))} />
       </Row>
 
       <MonthGrid
@@ -90,9 +93,9 @@ export default function Calendar() {
           <Row gap={space.m} style={{ alignItems: 'flex-start' }}>
             <Icon name="warning" size={22} color="danger" />
             <View style={{ flex: 1, gap: space.xs }}>
-              <Text variant="headline" color="danger">{`${formatDayLong(incomplete.start)} has no check-out`}</Text>
-              <Text variant="subhead">{`Clocked in ${formatTime(incomplete.start)}${workplace ? ` at ${workplace.name}` : ''}.`}</Text>
-              <Pressable accessibilityRole="button" onPress={() => openDay(toDateKey(incomplete.start))} hitSlop={8}>
+              <Text variant="headline" color="danger">{`${formatDayLong(incompleteDay!)} has no check-out`}</Text>
+              <Text variant="subhead">{`Clocked in ${formatTime(incomplete.start, sessionZone(incomplete, tz))}${workplace ? ` at ${workplace.name}` : ''}.`}</Text>
+              <Pressable accessibilityRole="button" onPress={() => openDay(incompleteDay!)} hitSlop={8}>
                 <Text variant="headline" color="danger">
                   Fix entry
                 </Text>

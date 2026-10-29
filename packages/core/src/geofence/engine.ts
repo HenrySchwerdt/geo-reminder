@@ -29,7 +29,7 @@ import type {
 
 export interface EngineConfig {
   workplaces: Workplace[];
-  /** IANA zone used for "today", rule windows and weekdays. */
+  /** Device zone: the battery budget day, and rules of workplaces without their own `tz`. */
   timeZone: string;
   maxRegions?: number;
 }
@@ -68,6 +68,11 @@ const hhmm = (s: string) => {
   const [h, m] = s.split(':').map(Number);
   return h * 60 + m;
 };
+
+/** Zone a workplace's rules are read in: its own, else the device's. */
+const zoneOf = (wp: Workplace, cfg: EngineConfig) => wp.tz ?? cfg.timeZone;
+/** The local date at a workplace — arrival questions are asked once per day there. */
+const dayAt = (wp: Workplace, ms: number, cfg: EngineConfig) => localParts(ms, zoneOf(wp, cfg)).date;
 
 function ruleDayActive(wp: Workplace, ms: number, tz: string) {
   const { weekday } = localParts(ms, tz);
@@ -196,16 +201,17 @@ export function step(state: EngineState, input: EngineInput, cfg: EngineConfig):
         for (const wp of cfg.workplaces) {
           // Clocking in answers today's arrival question everywhere.
           const t = track(wp.id);
-          if (t.arrivalHandledOn !== today) {
+          if (t.arrivalHandledOn !== dayAt(wp, now, cfg)) {
             effects.push({ type: 'cancelNotification', kind: 'arrival', workplaceId: wp.id });
-            t.arrivalHandledOn = today;
+            t.arrivalHandledOn = dayAt(wp, now, cfg);
           }
         }
       }
       break;
     case 'answered': {
       const t = track(input.workplaceId);
-      if (input.kind === 'arrival') t.arrivalHandledOn = today;
+      const wp = cfg.workplaces.find((w) => w.id === input.workplaceId);
+      if (input.kind === 'arrival') t.arrivalHandledOn = wp ? dayAt(wp, now, cfg) : today;
       else t.departureSent = true;
       break;
     }
@@ -220,18 +226,19 @@ export function step(state: EngineState, input: EngineInput, cfg: EngineConfig):
   for (const wp of cfg.workplaces) {
     const t = track(wp.id);
     const r = wp.rules;
+    const day = dayAt(wp, now, cfg);
     if (
       r.arrival.enabled &&
       t.zone === 'inside' &&
       t.insideSince !== undefined &&
       !s.clockedIn &&
-      t.arrivalHandledOn !== today &&
-      ruleDayActive(wp, now, cfg.timeZone) &&
-      inArrivalWindow(wp, t.arrivedAt ?? now, cfg.timeZone) &&
+      t.arrivalHandledOn !== day &&
+      ruleDayActive(wp, now, zoneOf(wp, cfg)) &&
+      inArrivalWindow(wp, t.arrivedAt ?? now, zoneOf(wp, cfg)) &&
       now - t.insideSince >= r.arrival.delayMinutes * 60_000
     ) {
       effects.push({ type: 'notify', kind: 'arrival', workplaceId: wp.id, suggestedAt: t.arrivedAt ?? t.insideSince });
-      t.arrivalHandledOn = today;
+      t.arrivalHandledOn = day;
     }
     const sessionHere = r.departure.onlyWhenClockedIn ? s.clockedInAt === wp.id : s.clockedIn;
     if (
@@ -265,9 +272,8 @@ export function step(state: EngineState, input: EngineInput, cfg: EngineConfig):
 /** Does this workplace currently need watching, and for what? */
 function relevance(s: EngineState, wp: Workplace, now: number, cfg: EngineConfig) {
   const t = s.tracks[wp.id];
-  const today = localParts(now, cfg.timeZone).date;
   const arrival =
-    wp.rules.arrival.enabled && !s.clockedIn && t?.arrivalHandledOn !== today && ruleDayActive(wp, now, cfg.timeZone);
+    wp.rules.arrival.enabled && !s.clockedIn && t?.arrivalHandledOn !== dayAt(wp, now, cfg) && ruleDayActive(wp, now, zoneOf(wp, cfg));
   const departure = wp.rules.departure.enabled && (wp.rules.departure.onlyWhenClockedIn ? s.clockedInAt === wp.id : s.clockedIn);
   return { arrival, departure };
 }

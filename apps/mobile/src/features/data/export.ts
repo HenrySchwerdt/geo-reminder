@@ -1,19 +1,16 @@
 /** Export functions: UI-free, everything stays on the device until the user picks a share target. */
-import { toCsv, toExportFile } from '@worktime/core';
+import { dateKeyOf, toCsv, toExportFile } from '@worktime/core';
 
 import { getSettings } from '@/features/settings/store';
 import { getLedger } from '@/features/tracking/store';
 import { getWorkplaces } from '@/features/workplaces/store';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { shareTextFile } from './files';
 
-const timeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+const timeZone = deviceTimeZone;
 
 /** Local calendar date, YYYY-MM-DD. */
-function today(now: number): string {
-  const d = new Date(now);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+const today = (now: number) => dateKeyOf(now, timeZone());
 
 /** One row per work session, for spreadsheets and payroll. */
 export async function exportCsv(now = Date.now()): Promise<string> {

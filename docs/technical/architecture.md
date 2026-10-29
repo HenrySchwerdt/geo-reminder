@@ -36,6 +36,25 @@ type Event = {
 ```
 Sessions, days, balances are derived (pure functions in `packages/core`).
 
+## Time zones
+Every event stores the instant (epoch ms, UTC) **and** the IANA zone it was recorded in (`tz`); workplaces store
+the zone they were created in. All calendar maths goes through `packages/core/src/time/zone.ts` with an explicit
+zone — nothing relies on the JS engine's local time, which can lag behind the OS after a zone change.
+
+* **A session belongs to the day of its clock-in, in the zone of the clock-in** (`sessionDay`). Sessions are never
+  split at midnight: a night shift 22:00–06:00 counts 8 h towards the day it started. Travelling later doesn't
+  move past days.
+* **Times are shown in the session's zone**, with a "Berlin time" note when that differs from the phone's zone.
+  Corrections are edited in that zone and keep it; sessions added by hand use the phone's current zone.
+* **"Today" and "this week"** are where the phone is now (`deviceTimeZone()` via `expo-localization`, read on
+  every call). A running night shift stays on its start day and counts towards the balance once it ends.
+* **Reminders** (arrival window, weekdays, once-per-day) use the workplace's zone, so they're right even before
+  the phone switches zones after landing.
+* **CSV export**: one row per session in its own zone (`time_zone` column per row). JSON backups keep instants
+  plus zones. Events from versions without `tz` fall back to the phone's zone.
+* **DST**: durations come from instants; DST days are 23/25 h; a wall time skipped by the spring jump resolves
+  forward (02:30 → 03:30), a repeated one to its first occurrence.
+
 ## Watch sync
 | | iPhone ↔ Apple Watch | Android ↔ Wear OS |
 |---|---|---|
