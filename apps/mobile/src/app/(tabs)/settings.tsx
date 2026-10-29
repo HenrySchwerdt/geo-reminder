@@ -54,6 +54,11 @@ export default function Settings() {
           last
         />
       </Group>
+      <SectionHeader>Data</SectionHeader>
+      <Group>
+        <ListRow icon="lock" title="Your data" subtitle="Export as CSV or JSON, import, delete" onPress={() => router.push('/data')} />
+        <ListRow icon="shield" title="Privacy" onPress={() => router.push('/privacy')} last />
+      </Group>
       <Text variant="footnote" color="text/secondary" style={{ textAlign: 'center' }}>
         All data stays on this phone. No account, no analytics.
       </Text>

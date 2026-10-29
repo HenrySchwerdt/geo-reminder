@@ -7,6 +7,7 @@ import { Platform, useColorScheme } from 'react-native';
 
 import { resync } from '@/features/geofencing/runner';
 import { NotificationBridge } from '@/features/notifications/bridge';
+import { OnboardingGate } from '@/features/onboarding';
 import { palettes } from '@/shared/theme';
 
 export default function RootLayout() {
@@ -21,10 +22,14 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={{ ...base, colors: { ...base.colors, background: c['bg/canvas'], primary: c.accent, card: c['bg/elevated'], text: c['text/primary'] } }}>
       <NotificationBridge />
+      <OnboardingGate />
       <Stack screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: c['bg/canvas'] }, headerTintColor: c.accent }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="workplace/[id]" options={{ presentation: 'modal', title: 'Workplace' }} />
         <Stack.Screen name="location" options={{ title: 'Location' }} />
+        <Stack.Screen name="data" options={{ title: 'Your data' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
       </Stack>
     </ThemeProvider>
   );
