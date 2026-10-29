@@ -3,4 +3,4 @@
  * no-op on platforms it doesn't support (use `.ios.ts` / `.android.ts` / `.web.ts` files where needed).
  * Imported once from the root layout and from background tasks.
  */
-export {};
+import './adapters/watch';

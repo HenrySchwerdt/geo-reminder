@@ -1,0 +1,8 @@
+{
+  "name": "watch-bridge",
+  "version": "1.0.0",
+  "description": "WatchConnectivity bridge between the Worktime iPhone app and its Apple Watch app (local Expo module)",
+  "private": true,
+  "main": "index.ts",
+  "license": "UNLICENSED"
+}
