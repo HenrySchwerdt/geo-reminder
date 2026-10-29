@@ -1,11 +1,13 @@
 // Background tasks must be defined before anything else runs (the OS may start the app headless).
 import '@/features/geofencing/tasks';
+import '@/features/surfaces/register';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
 import { resync } from '@/features/geofencing/runner';
+import { SurfaceSync } from '@/features/surfaces/sync';
 import { NotificationBridge } from '@/features/notifications/bridge';
 import { OnboardingGate } from '@/features/onboarding';
 import { palettes } from '@/shared/theme';
@@ -22,6 +24,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={{ ...base, colors: { ...base.colors, background: c['bg/canvas'], primary: c.accent, card: c['bg/elevated'], text: c['text/primary'] } }}>
       <NotificationBridge />
+      <SurfaceSync />
       <OnboardingGate />
       <Stack screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: c['bg/canvas'] }, headerTintColor: c.accent }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

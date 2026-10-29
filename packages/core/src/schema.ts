@@ -67,14 +67,68 @@ export const TimeEventSchema = z.object({
   tz: z.string().optional(),
 });
 
+/** Where a weekday is usually worked. `off` days have no target; `home` days get time-based reminders. */
+export const DayModeSchema = z.enum(['office', 'home', 'flexible', 'off']);
+
+/** After `afterMinutes` of work, at least `minBreakMinutes` of break are required (German ArbZG by default). */
+export const BreakRuleSchema = z.object({
+  afterMinutes: z.number().int().min(0).max(24 * 60),
+  minBreakMinutes: z.number().int().min(0).max(240),
+});
+
+export const DEFAULT_PATTERN: DayMode[] = ['office', 'office', 'office', 'office', 'office', 'off', 'off'];
+export const DEFAULT_BREAK_RULE_SETTINGS: BreakRuleSetting[] = [
+  { afterMinutes: 6 * 60, minBreakMinutes: 30 },
+  { afterMinutes: 9 * 60, minBreakMinutes: 45 },
+];
+
+/** Time-based reminders, used on home-office days and as the fallback when location is off. */
+export const TimeRemindersSchema = z.object({
+  /** "Start work?" at this time on home days when not clocked in. */
+  start: z.object({ enabled: z.boolean(), at: hhmm }),
+  /** "Stop work?" after this much work, or at `latest`, whichever comes first. */
+  stop: z.object({ enabled: z.boolean(), afterMinutes: z.number().int().min(60).max(16 * 60), latest: hhmm }),
+  /** Remind about a session from a past day that has no check-out. */
+  missingCheckOut: z.boolean(),
+});
+
+export const DEFAULT_TIME_REMINDERS: TimeReminders = {
+  start: { enabled: true, at: '09:00' },
+  stop: { enabled: true, afterMinutes: 8 * 60 + 30, latest: '18:00' },
+  missingCheckOut: true,
+};
+
+export const AppearanceSchema = z.enum(['system', 'light', 'dark']);
+
+/**
+ * Fields added after the first release carry defaults, so settings persisted by an older version (and older
+ * backups) still parse. Invariant kept by the settings store: `workdays` = ISO weekdays whose `pattern` is not `off`.
+ */
 export const SettingsSchema = z.object({
   weeklyHours: z.number().min(1).max(80),
   workdays: z.array(z.number().int().min(1).max(7)),
   profile: PrecisionProfileSchema,
   onboarded: z.boolean(),
+  /** Mon … Sun. */
+  pattern: z.array(DayModeSchema).length(7).default(DEFAULT_PATTERN),
+  breakRules: z.array(BreakRuleSchema).max(4).default(DEFAULT_BREAK_RULE_SETTINGS),
+  reminders: TimeRemindersSchema.default(DEFAULT_TIME_REMINDERS),
+  appearance: AppearanceSchema.default('system'),
+  /** Show the running session as a Live Activity (iOS) / ongoing notification (Android). */
+  liveActivity: z.boolean().default(true),
 });
 
-export const DEFAULT_SETTINGS: Settings = { weeklyHours: 40, workdays: [1, 2, 3, 4, 5], profile: 'balanced', onboarded: false };
+export const DEFAULT_SETTINGS: Settings = {
+  weeklyHours: 40,
+  workdays: [1, 2, 3, 4, 5],
+  profile: 'balanced',
+  onboarded: false,
+  pattern: DEFAULT_PATTERN,
+  breakRules: DEFAULT_BREAK_RULE_SETTINGS,
+  reminders: DEFAULT_TIME_REMINDERS,
+  appearance: 'system',
+  liveActivity: true,
+};
 
 /** The JSON export / backup file. Versioned so future imports can migrate. */
 export const ExportFileSchema = z.object({
@@ -94,4 +148,8 @@ export type EventType = z.infer<typeof EventTypeSchema>;
 export type EventSource = z.infer<typeof EventSourceSchema>;
 export type TimeEvent = z.infer<typeof TimeEventSchema>;
 export type Settings = z.infer<typeof SettingsSchema>;
+export type DayMode = z.infer<typeof DayModeSchema>;
+export type BreakRuleSetting = z.infer<typeof BreakRuleSchema>;
+export type TimeReminders = z.infer<typeof TimeRemindersSchema>;
+export type Appearance = z.infer<typeof AppearanceSchema>;
 export type ExportFile = z.infer<typeof ExportFileSchema>;

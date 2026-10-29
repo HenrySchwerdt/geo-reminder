@@ -13,7 +13,14 @@ import { getLedger, useTracking } from './store';
 const append = (events: Omit<TimeEvent, 'id' | 'recordedAt'>[]) => {
   const tz = deviceTimeZone();
   useTracking.getState().append(events.map((e) => ({ tz, ...e, id: newId(), recordedAt: Date.now() })));
+  void publishSurfaces();
 };
+
+/** Widgets, Live Activity and watches show every change (loaded lazily: the hub imports these actions). */
+async function publishSurfaces() {
+  const { publishSurfaces: publish } = await import('@/features/surfaces');
+  await publish();
+}
 
 const currentState = () => stateOf(getLedger(), Date.now());
 
@@ -28,14 +35,16 @@ export function clockIn(at = Date.now(), source: EventSource = 'app', workplaceI
   void notifyEngine(true, workplaceId);
 }
 
-export function startBreak(source: EventSource = 'app') {
-  if (currentState().state !== 'working') return;
-  append([{ type: 'breakStart', at: Date.now(), source }]);
+export function startBreak(source: EventSource = 'app', at = Date.now()) {
+  const s = currentState();
+  if (s.state !== 'working') return;
+  append([{ type: 'breakStart', at: Math.max(s.since ?? at, Math.min(at, Date.now())), source }]);
 }
 
-export function endBreak(source: EventSource = 'app') {
-  if (currentState().state !== 'break') return;
-  append([{ type: 'breakEnd', at: Date.now(), source }]);
+export function endBreak(source: EventSource = 'app', at = Date.now()) {
+  const s = currentState();
+  if (s.state !== 'break') return;
+  append([{ type: 'breakEnd', at: Math.max(s.since ?? at, Math.min(at, Date.now())), source }]);
 }
 
 export function clockOut(at = Date.now(), source: EventSource = 'app') {

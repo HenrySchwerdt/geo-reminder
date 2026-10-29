@@ -7,3 +7,4 @@ export * from './time/day';
 export * from './time/ledger';
 export * from './time/zone';
 export * from './export';
+export * from './surfaces';

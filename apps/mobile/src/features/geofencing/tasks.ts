@@ -5,6 +5,9 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
+// Background wake-ups also update widgets and watches.
+import '@/features/surfaces/register';
+
 import { dispatch, GEOFENCE_TASK, LOCATION_TASK } from './runner';
 import { logLocation } from './store';
 
