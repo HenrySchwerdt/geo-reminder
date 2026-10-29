@@ -108,7 +108,58 @@
       "expo-sharing",
       "@react-native-community/datetimepicker",
       "expo-localization",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.worktime.app.ExpoWidgetsTarget",
+          "groupIdentifier": "group.com.worktime.app",
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "Worktime",
+              "displayName": "Worktime",
+              "description": "Your time today, a live timer and a clock in / break button.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryCircular",
+                  "accessoryRectangular",
+                  "accessoryInline"
+                ]
+              },
+              "android": null
+            },
+            {
+              "name": "WorktimeSmall",
+              "displayName": "Worktime",
+              "description": "Your time today and progress to your target.",
+              "ios": null,
+              "android": {
+                "minWidth": 110,
+                "minHeight": 110,
+                "targetCellWidth": 2,
+                "targetCellHeight": 2,
+                "resizeMode": "none"
+              }
+            },
+            {
+              "name": "WorktimeMedium",
+              "displayName": "Worktime with week",
+              "description": "Your time today, this week and a clock in / break button.",
+              "ios": null,
+              "android": {
+                "minWidth": 250,
+                "minHeight": 110,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "horizontal"
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
