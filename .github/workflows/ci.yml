@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (core + app logic)
+        run: npm test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npx expo lint
+        working-directory: apps/mobile
+      - name: Expo doctor
+        run: npx -y expo-doctor
+        working-directory: apps/mobile
+      - name: Bundle iOS and Android
+        run: npx expo export --platform ios --platform android --output-dir /tmp/expo-dist
+        working-directory: apps/mobile
