@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Design tokens
 # ---------------------------------------------------------------------------
 
-# name: (light, dark)
+# name: (light, dark[, flat exploration])
 COLORS = {
     "bg/canvas": ("#F4F2EC", "#0B0C0B"),
     "bg/elevated": ("#FFFFFF", "#181A18"),
@@ -133,6 +133,7 @@ class Builder:
         self.tstyle = {}  # text style name -> ref
         self.estyle = {}  # effect style name -> ref
         self.icons = {}   # (name, weight) -> component ref
+        self.screens = {} # screen function name -> root frame ref
 
     # -- plumbing ----------------------------------------------------------
     def ref(self, prefix="n"):
@@ -232,7 +233,9 @@ class Builder:
         if align:
             props["textAlign"] = align
         props.update(extra)
-        params = {"type": "text", "parent": parent, "text": s, "props": props}
+        params = {"type": "text", "text": s, "props": props}
+        if parent is not None:
+            params["parent"] = parent
         if name:
             params["name"] = name
         if x is not None:
@@ -300,7 +303,7 @@ class Builder:
         return c
 
     def icon(self, parent, name, size=24, color="text/primary", weight="regular"):
-        c = self.icons[(name, weight)]
+        c = self.icons.get((name, weight)) or self.icons[(name, "regular")]
         i = self.add("instance.create", {"component": c, "parent": parent})
         if size != 24:
             self.set(i, width=size, height=size)
@@ -326,6 +329,7 @@ class Builder:
 
     def swap_icon(self, inst, name, weight="regular", color=None, layer="Icon"):
         target = self.first(inst, name=layer, type="INSTANCE")
-        self.add("instance.swap", {"ids": [target], "component": self.icons[(name, weight)]})
+        comp = self.icons.get((name, weight)) or self.icons[(name, "regular")]
+        self.add("instance.swap", {"ids": [target], "component": comp})
         if color:
             self.set(self.first(inst, name="Glyph", type="VECTOR"), fill=col(color))
