@@ -10,6 +10,11 @@
     "ios": {
       "bundleIdentifier": "com.worktime.app",
       "supportsTablet": false,
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.worktime.app"
+        ]
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "location"
@@ -102,7 +107,8 @@
       "expo-sqlite",
       "expo-sharing",
       "@react-native-community/datetimepicker",
-      "expo-localization"
+      "expo-localization",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,
