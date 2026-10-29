@@ -9,100 +9,134 @@ def dark(b, ref):
     b.add("variable.setMode", {"ids": [ref], "collection": b.color_collection, "mode": "Dark"})
 
 
-def watch_frame(b, name, x, y, title="Worktime", time="15:12"):
+def glow(b, root, color, w=WW, y=-130, opacity=0.5):
+    if color == "#F2B04E":
+        opacity = min(opacity, 0.32)
+    b.ellipse(root, w * 1.3, 220, color, x=-w * 0.15, y=y, opacity=opacity, name="Glow",
+              effects=[{"type": "layerBlur", "radius": 46}])
+
+
+def watch_root(b, name, x, y, title="Worktime", time="15:12", glow_color=None, title_color="accent"):
     root = b.frame(None, name=name, x=x, y=y, w=WW, h=WH, fill="#000000", clip=True, radius=46)
     dark(b, root)
-    c = b.frame(root, name="Content", x=0, y=0, w=WW, h=WH, dir="v", gap=6, pad=[10, 14, 12, 14], sw="fixed",
-                sh="fixed")
-    top = b.frame(c, name="Header", dir="h", sw="fill", main="spaceBetween", cross="center", h=24, sh="fixed")
-    b.text(top, title, "Footnote/Strong", "accent", fontSize=15, lineHeight=18)
+    if glow_color:
+        glow(b, root, glow_color)
+    top = b.frame(root, name="Header", x=16, y=10, w=WW - 32, h=22, dir="h", main="spaceBetween", cross="center",
+                  sw="fixed", sh="fixed")
+    b.text(top, title, "Footnote/Strong", title_color, fontSize=15, lineHeight=18)
     b.text(top, time, "Footnote/Strong", "text/primary", fontSize=15, lineHeight=18, features={"tnum": True})
-    return root, c
+    return root
 
 
-def watch_btn(b, parent, label, icon, fill, fg, w=None):
-    f = b.frame(parent, name=label, dir="h", gap=6, h=44, radius=22, sw="fill" if w is None else "fixed",
-                w=w, sh="fixed", main="center", cross="center", fill=fill)
-    b.icon(f, icon, 18, color=fg, weight="fill")
-    if label:
-        b.text(f, label, "Headline", fg, fontSize=16)
+def corner_btn(b, root, icon, fill, fg, left=True, y=186, size=46, name=None):
+    f = b.frame(root, name=name or icon, w=size, h=size, radius=size / 2, x=16 if left else WW - 16 - size, y=y,
+                sw="fixed", sh="fixed", dir="h", main="center", cross="center", fill=fill)
+    b.icon(f, icon, 20, color=fg, weight="fill")
+    return f
+
+
+def capsule(b, parent, label, icon, fill, fg, x=None, y=None, w=None, h=44):
+    f = b.frame(parent, name=label, dir="h", gap=6, h=h, radius=h / 2, main="center", cross="center", fill=fill,
+                sh="fixed", sw="fill" if w is None else "fixed", w=w, x=x, y=y)
+    if icon:
+        b.icon(f, icon, 17, color=fg, weight="fill")
+    b.text(f, label, "Headline", fg, fontSize=16)
+    return f
+
+
+def big_ring(b, root, frac, color, size=150, y=36, track="#FFFFFF1F", width=13, knob=True):
+    import math
+    r_ = ring(b, root, size, frac, color=color, track=track, width=width, name="Progress ring")
+    b.set(r_, x=(WW - size) / 2, y=y)
+    if knob:
+        a = -math.pi / 2 + 2 * math.pi * frac
+        rr = (size - width) / 2
+        kx, ky = size / 2 + rr * math.cos(a), size / 2 + rr * math.sin(a)
+        b.ellipse(r_, width + 5, width + 5, "#FFFFFF", x=kx - (width + 5) / 2, y=ky - (width + 5) / 2, name="Now",
+                  effects=[{"type": "dropShadow", "color": "#00000080", "offset": [0, 1], "radius": 4}])
+    return r_
+
+
+def ring_label(b, root, lines, y, h=80):
+    f = b.frame(root, name="Readout", x=0, y=y, w=WW, h=h, dir="v", gap=0, main="center", cross="center",
+                sw="fixed", sh="fixed")
+    for txt, style, color, kw in lines:
+        b.text(f, txt, style, color, **kw)
     return f
 
 
 def watch_idle(b, x, y):
-    root, c = watch_frame(b, "Watch · Not working", x, y, time="08:44")
-    b.text(c, "Today 0:00", "Footnote", "text/secondary", fontSize=14)
-    mid = b.frame(c, name="Main", dir="v", gap=2, sw="fill", sh="fill", main="center")
-    b.text(mid, "Studio", "Title/2", fontSize=24)
-    b.text(mid, "Kreuzberg", "Title/2", fontSize=24)
-    b.text(mid, "Arrived 08:44", "Footnote", "text/secondary", fontSize=14)
-    watch_btn(b, c, "Clock in", "play", "accent", "on-accent")
+    root = watch_root(b, "Watch · Not working", x, y, time="08:44", glow_color="#5CC99B")
+    b.text(root, "Studio Kreuzberg", "Footnote/Strong", "text/primary", x=0, y=40, w=WW, textAlign="center",
+           fontSize=15)
+    b.text(root, "Arrived 08:44", "Footnote", "text/secondary", x=0, y=58, w=WW, textAlign="center", fontSize=13)
+    btn = b.frame(root, name="Clock in", w=108, h=108, radius=54, x=(WW - 108) / 2, y=84, sw="fixed", sh="fixed",
+                  dir="v", gap=2, main="center", cross="center", fill="#5CC99B",
+                  effects=[{"type": "dropShadow", "color": "#5CC99B59", "offset": [0, 6], "radius": 22}])
+    b.icon(btn, "play", 38, color="#06140E", weight="fill")
+    b.text(btn, "Clock in", "Footnote/Strong", "#06140E", fontSize=14)
+    b.text(root, "Today 0:00  ·  Week +6h 20m", "Caption", "text/secondary", x=0, y=212, w=WW,
+           textAlign="center", fontSize=12)
     return root
 
 
 def watch_active(b, x, y):
-    root, c = watch_frame(b, "Watch · Working", x, y)
-    mid = b.frame(c, name="Main", dir="h", gap=10, sw="fill", sh="fill", cross="center")
-    ring(b, mid, 64, 0.73, width=8, track="bg/track")
-    tx = b.frame(mid, name="Text", dir="v", gap=0)
-    b.text(tx, "5:50", "Numeric/Large", fontSize=34, lineHeight=38)
-    b.text(tx, "Ends ~17:22", "Footnote", "text/secondary", fontSize=13)
-    ribbon(b, c, WW - 28, [("08:47", "12:30", "work"), ("12:30", "13:05", "break"), ("13:05", "15:12", "work")],
-           now="15:12", planned="17:22", labels=False, h=8)
-    acts = b.frame(c, name="Actions", dir="h", gap=8, sw="fill")
-    watch_btn(b, acts, "", "coffee", "break/soft", "break", w=56)
-    watch_btn(b, acts, "Stop", "stop", "bg/sunken", "text/primary")
+    root = watch_root(b, "Watch · Working", x, y, glow_color="#2E9C70")
+    big_ring(b, root, 0.73, "accent", y=36)
+    ring_label(b, root, [("WORKING", "Caption/Upper", "accent", dict(fontSize=11)),
+                         ("5:50", "Numeric/Large", "text/primary", dict(fontSize=40, lineHeight=44)),
+                         ("ends 17:22", "Footnote", "text/secondary", dict(fontSize=13))], y=71)
+    corner_btn(b, root, "coffee", "#3A2B13", "#F2B04E", left=True, name="Break")
+    corner_btn(b, root, "stop", "#2A2D2B", "#FFFFFF", left=False, name="Clock out")
     return root
 
 
 def watch_break(b, x, y):
-    root, c = watch_frame(b, "Watch · Break", x, y, time="12:43")
-    b.text(c, "On break", "Footnote/Strong", "break", fontSize=14)
-    mid = b.frame(c, name="Main", dir="v", gap=0, sw="fill", sh="fill", main="center")
-    b.text(mid, "0:12:40", "Numeric/Large", "break", fontSize=38, lineHeight=42)
-    b.text(mid, "3h 43m worked today", "Footnote", "text/secondary", fontSize=14)
-    watch_btn(b, c, "End break", "play", "accent", "on-accent")
+    root = watch_root(b, "Watch · Break", x, y, time="12:43", glow_color="#F2B04E", title="On break",
+                      title_color="break")
+    big_ring(b, root, 0.42, "break", y=36)
+    ring_label(b, root, [("BREAK", "Caption/Upper", "break", dict(fontSize=11)),
+                         ("12:40", "Numeric/Large", "break", dict(fontSize=40, lineHeight=44)),
+                         ("of 30 min", "Footnote", "text/secondary", dict(fontSize=13))], y=71)
+    capsule(b, root, "Resume work", "play", "#5CC99B", "#06140E", x=24, y=192, w=WW - 48)
     return root
 
 
 def watch_confirm(b, x, y):
-    root, c = watch_frame(b, "Watch · Clock-out prompt", x, y, time="17:31")
-    b.text(c, "Left Studio Kreuzberg", "Headline", fontSize=16, w=WW - 28)
-    b.text(c, "8h 09m today · +9m", "Footnote", "text/secondary", fontSize=14)
-    watch_btn(b, c, "Clock out 17:29", "stop", "text/primary", "bg/canvas")
-    watch_btn(b, c, "Still working", "briefcase", "bg/sunken", "text/primary")
+    root = watch_root(b, "Watch · Clock-out prompt", x, y, time="17:31")
+    c = b.frame(root, name="Content", x=16, y=40, w=WW - 32, dir="v", gap=4, sw="fixed")
+    b.text(c, "Leaving Studio Kreuzberg?", "Headline", fontSize=17, lineHeight=21, sw="fill")
+    b.text(c, "8h 09m today · +9m", "Footnote", "accent", fontSize=13)
+    acts = b.frame(root, name="Actions", x=14, y=134, w=WW - 28, dir="v", gap=6, sw="fixed")
+    capsule(b, acts, "Clock out 17:29", "stop", "#F3F2ED", "#0B0C0B")
+    capsule(b, acts, "Still working", None, "#232624", "#F3F2ED")
     return root
 
 
 def watch_face(b, x, y):
-    """A modular watch face showing the complication families."""
+    """Modular face with Worktime complications: corner gauges, a rectangular ribbon and an inline line."""
     root = b.frame(None, name="Watch · Complications", x=x, y=y, w=WW, h=WH, fill="#000000", clip=True, radius=46)
     dark(b, root)
-    b.text(root, "THU 16", "Footnote/Strong", "#FF9F0A", x=18, y=14, fontSize=13)
-    b.text(root, "15:12", "Numeric/Large", "text/primary", x=WW - 92, y=8, fontSize=30, lineHeight=34)
-    # rectangular complication
-    rc = b.frame(root, name="Rectangular", x=12, y=58, w=WW - 24, h=78, dir="v", gap=6, pad=[10, 12, 10, 12],
-                 radius=16, sw="fixed", sh="fixed", fill="#1C1C1E")
-    hd = b.frame(rc, name="Header", dir="h", gap=6, cross="center")
-    b.icon(hd, "clock", 14, color="accent", weight="fill")
-    b.text(hd, "WORKING · 5:50", "Caption", "accent", fontSize=12)
-    ribbon(b, rc, WW - 48, [("08:47", "12:30", "work"), ("12:30", "13:05", "break"), ("13:05", "15:12", "work")],
-           now="15:12", planned="17:22", labels=False, h=8)
-    b.text(rc, "Ends ~17:22 · 2h 10m left", "Caption", "text/secondary", fontSize=12)
-    # circular complications
-    row = b.frame(root, name="Circular", x=12, y=150, w=WW - 24, dir="h", main="spaceBetween", sw="fixed")
-    for frac, lab, colr in [(0.73, "73%", "accent"), (0.62, "+6h", "accent"), (0.0, "", "break")]:
-        cell = b.frame(row, name=f"Circular {lab or 'action'}", w=54, h=54, radius=27, sw="fixed", sh="fixed",
-                       fill="#1C1C1E", dir="h", main="center", cross="center")
-        if lab:
-            r = ring(b, cell, 46, frac, color=colr, track="bg/track", width=5)
-            b.set(r, absolute=True)
-            b.set(r, x=4, y=4)
-            b.text(cell, lab, "Caption", "text/primary", fontSize=12, fontStyle="Semi Bold")
-        else:
-            b.icon(cell, "play", 22, color="accent", weight="fill")
-    b.text(root, "Rectangular · gauge · balance · action", "Caption", "text/tertiary", x=0, y=220, w=WW,
-           textAlign="center", fontSize=9, lineHeight=12)
+    b.text(root, "15:12", "Numeric/Large", "text/primary", x=0, y=6, w=WW, textAlign="center", fontSize=48,
+           lineHeight=52)
+    b.text(root, "THU 16  ·  ◷ 5:50 today", "Caption/Upper", "#FF9F0A", x=0, y=60, w=WW, textAlign="center",
+           fontSize=11)
+    rc = b.frame(root, name="Rectangular", x=12, y=84, w=WW - 24, h=74, dir="v", gap=6, pad=[10, 12, 10, 12],
+                 radius=18, sw="fixed", sh="fixed", fill="#161816")
+    hd = b.frame(rc, name="Header", dir="h", sw="fill", main="spaceBetween", cross="center")
+    b.text(hd, "WORKING", "Caption/Upper", "accent", fontSize=11)
+    b.text(hd, "5:50", "Footnote/Strong", "text/primary", fontSize=14, features={"tnum": True})
+    ribbon(b, rc, WW - 48, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=7)
+    b.text(rc, "ends 17:22 · 2h 10m left", "Caption", "text/secondary", fontSize=11)
+    row = b.frame(root, name="Circular", x=16, y=170, w=WW - 32, dir="h", main="spaceBetween", sw="fixed")
+    for frac, top, lab, colr in [(0.73, "DAY", "73%", "accent"), (0.62, "BAL", "+6h", "accent"),
+                                 (0.42, "BRK", "12m", "break")]:
+        cell = b.frame(row, name=f"Circular {top}", w=52, h=52, radius=26, sw="fixed", sh="fixed",
+                       fill="#161816", dir="v", gap=0, main="center", cross="center")
+        r_ = ring(b, cell, 46, frac, color=colr, track="#FFFFFF24", width=4)
+        b.absolute(r_, 3, 3)
+        b.text(cell, top, "Caption", "text/secondary", fontSize=8, lineHeight=9)
+        b.text(cell, lab, "Caption", "text/primary", fontSize=12, lineHeight=14, fontStyle="Semi Bold")
     return root
 
 
@@ -207,10 +241,10 @@ def island(b, x, y):
     return root
 
 
-def widget(b, parent, name, w, h, fill="bg/elevated", x=None, y=None):
-    return b.frame(parent, name=name, w=w, h=h, radius=26, dir="v", gap=8, pad=16, sw="fixed", sh="fixed",
-                   fill=fill, x=x, y=y,
-                   effects=[{"type": "dropShadow", "color": "#0000001A", "offset": [0, 6], "radius": 20}])
+def widget(b, parent, name, w, h, fill="bg/elevated", x=None, y=None, main="spaceBetween", gap=0):
+    return b.frame(parent, name=name, w=w, h=h, radius=24 if w < 200 else 26, dir="v", gap=gap, pad=16,
+                   sw="fixed", sh="fixed", fill=fill, x=x, y=y, main=main,
+                   effects=[{"type": "dropShadow", "color": "#00000014", "offset": [0, 4], "radius": 16}])
 
 
 SEGS_NOW = [("08:47", "12:30", "work"), ("12:30", "13:05", "break"), ("13:05", "15:12", "work")]
@@ -221,38 +255,73 @@ WEEK_ROWS = [("Mon", [("08:40", "12:20", "work"), ("12:20", "12:50", "break"), (
              ("Fri", [], "—")]
 
 
+def w_header(b, parent, label, color="accent", right=None, right_color="text/secondary"):
+    from brand import mark
+    hd = b.frame(parent, name="Header", dir="h", gap=6, sw="fill", cross="center")
+    mark(b, hd, 18, arc="accent", hole="bg/elevated")
+    t = b.text(hd, label, "Footnote/Strong", color, sw="fill")
+    if right:
+        b.text(hd, right, "Footnote", right_color)
+    return hd
+
+
+def w_ribbon(b, parent, w, segs, now, left, right, planned="17:22", h=6):
+    f = b.frame(parent, name="Timeline", dir="v", gap=5, sw="fill")
+    ribbon(b, f, w, segs, now=now, planned=planned, labels=False, h=h)
+    lab = b.frame(f, name="Labels", dir="h", sw="fill", main="spaceBetween")
+    b.text(lab, left, "Caption", "text/tertiary", features={"tnum": True})
+    b.text(lab, right, "Caption", "text/tertiary", features={"tnum": True})
+    return f
+
+
 def w_small_status(b, parent, state="work", x=None, y=None, name=None):
-    spec = {"work": ("Working", "Working", "5:50", "ends ~17:22", "text/primary"),
-            "break": ("Break", "On break", "0:12", "since 12:30", "break"),
-            "off": ("Off", "Not working", "0:00", "office day · 8h", "text/tertiary")}[state]
     s = widget(b, parent, name or f"Small · Status ({state})", 170, 170, x=x, y=y)
-    b.inst("pill", s, props={"State": spec[0], "Label": spec[1]})
-    b.text(s, spec[2], "Numeric/Large", spec[4], fontSize=40, lineHeight=44)
-    b.text(s, spec[3], "Footnote", "text/secondary")
-    segs = SEGS_NOW if state == "work" else ([("08:47", "12:30", "work"), ("12:30", "12:43", "break")]
-                                              if state == "break" else [])
-    ribbon(b, s, 138, segs, now={"work": "15:12", "break": "12:43", "off": "08:12"}[state], planned="17:22",
-           labels=False, h=8)
+    if state == "work":
+        w_header(b, s, "Working")
+        t = b.frame(s, name="Readout", dir="v", gap=0)
+        b.text(t, "5:50", "Display/Timer", fontSize=46, lineHeight=48)
+        b.text(t, "since 08:47", "Footnote", "text/secondary")
+        w_ribbon(b, s, 138, SEGS_NOW, "15:12", "08:47", "~17:22")
+    elif state == "break":
+        w_header(b, s, "On break", "break")
+        t = b.frame(s, name="Readout", dir="v", gap=0)
+        b.text(t, "12:40", "Display/Timer", "break", fontSize=40, lineHeight=48)
+        b.text(t, "min. 30 min", "Footnote", "text/secondary")
+        bar = b.frame(s, name="Break progress", dir="v", gap=5, sw="fill")
+        tr = b.frame(bar, name="Track", w=138, h=6, radius=3, fill="bg/track", sw="fixed", sh="fixed")
+        b.rect(tr, 138 * 0.42, 6, "break", radius=3, x=0, y=0)
+        lab = b.frame(bar, name="Labels", dir="h", sw="fill", main="spaceBetween")
+        b.text(lab, "12:30", "Caption", "text/tertiary")
+        b.text(lab, "13:00", "Caption", "text/tertiary")
+    else:
+        w_header(b, s, "Not working", "text/secondary")
+        t = b.frame(s, name="Readout", dir="v", gap=2)
+        b.text(t, "0:00", "Display/Timer", "text/tertiary", fontSize=46, lineHeight=48)
+        b.text(t, "Office day · 8h", "Footnote", "text/secondary")
+        w_ribbon(b, s, 138, [], "08:12", "08:50", "17:20")
     return s
 
 
 def w_small_clear(b, parent, x=None, y=None):
-    s2 = b.frame(parent, name="Small · Balance (clear)", w=170, h=170, radius=26, dir="v", gap=6, pad=16,
+    s2 = b.frame(parent, name="Small · Balance (clear)", w=170, h=170, radius=24, dir="v", gap=4, pad=16,
                  sw="fixed", sh="fixed", main="center", cross="center", fill="#FFFFFF1F", stroke="#FFFFFF59",
                  effects=GLASS_EFFECTS, x=x, y=y)
-    ring(b, s2, 84, 0.62, color="#FFFFFF", track="#FFFFFF33", width=9)
-    b.text(s2, "+6h 20m", "Headline", "#FFFFFF")
-    b.text(s2, "balance · clear style", "Caption", "#FFFFFFB3")
+    holder = b.frame(s2, name="Gauge", w=112, h=112, sw="fixed", sh="fixed", dir="v", main="center", cross="center")
+    r_ = ring(b, holder, 112, 0.62, color="#FFFFFF", track="#FFFFFF33", width=10)
+    b.absolute(r_, 0, 0)
+    b.text(holder, "+6h 20m", "Headline", "#FFFFFF")
+    b.text(holder, "balance", "Caption", "#FFFFFFB3")
     return s2
 
 
 def w_small_action(b, parent, x=None, y=None):
     s = widget(b, parent, "Small · Clock in (interactive)", 170, 170, x=x, y=y)
-    b.set(s, mainAlign="spaceBetween")
-    hd = b.frame(s, name="Header", dir="h", gap=6, cross="center")
+    hd = b.frame(s, name="Header", dir="h", gap=6, sw="fill", cross="center")
     b.icon(hd, "buildings", 16, color="accent", weight="fill")
-    b.text(hd, "Studio Kreuzberg", "Caption", "text/secondary")
-    b.text(s, "Arrived 08:44", "Headline", sw="fill")
+    b.text(hd, "Studio Kreuzberg", "Footnote/Strong", "accent", sw="fill")
+    t = b.frame(s, name="Readout", dir="v", gap=2, sw="fill")
+    b.text(t, "Arrived 08:44", "Headline", sw="fill")
+    b.text(t, "Not clocked in yet", "Footnote", "text/secondary")
     btn = b.frame(s, name="Clock in", dir="h", gap=6, h=44, sh="fixed", sw="fill", radius=22, main="center",
                   cross="center", fill="accent")
     b.icon(btn, "play", 16, color="on-accent", weight="fill")
@@ -262,61 +331,67 @@ def w_small_action(b, parent, x=None, y=None):
 
 def w_medium_today(b, parent, x=None, y=None):
     m = widget(b, parent, "Medium · Today (interactive)", 364, 170, x=x, y=y)
-    b.set(m, gap=10)
-    top = b.frame(m, name="Top", dir="h", sw="fill", main="spaceBetween", cross="center")
-    b.inst("pill", top, props={"State": "Working", "Label": "Working · Studio Kreuzberg"})
-    b.text(top, "5:50", "Numeric/Medium")
-    ribbon(b, m, 332, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=8)
-    b.text(m, "Ends ~17:22 · 2h 10m left · balance +6h 20m", "Caption", "text/secondary")
-    acts = b.frame(m, name="Actions", dir="h", gap=8, sw="fill")
+    top = b.frame(m, name="Top", dir="h", gap=12, sw="fill", cross="center")
+    l = b.frame(top, name="Readout", dir="v", gap=0, sw="fill")
+    w_header(b, l, "Working · Studio Kreuzberg")
+    b.text(l, "5:50", "Display/Timer", fontSize=46, lineHeight=50)
+    b.text(l, "ends ~17:22 · 2h 10m left", "Footnote", "text/secondary")
+    acts = b.frame(top, name="Actions", dir="v", gap=8, w=112, sw="fixed")
     for lab, icon, fill, fg in [("Break", "coffee", "break/soft", "break"), ("Clock out", "stop", "text/primary", "bg/canvas")]:
-        bt = b.frame(acts, name=lab, dir="h", gap=6, h=38, sh="fixed", radius=19, sw="fill", main="center",
+        bt = b.frame(acts, name=lab, dir="h", gap=6, h=40, sh="fixed", radius=20, sw="fill", main="center",
                      cross="center", fill=fill)
         b.icon(bt, icon, 14, color=fg, weight="fill")
         b.text(bt, lab, "Footnote/Strong", fg)
+    w_ribbon(b, m, 332, SEGS_NOW, "15:12", "06:00", "20:00")
     return m
 
 
 def w_medium_week(b, parent, w=364, x=None, y=None):
     m = widget(b, parent, "Medium · Week", w, 170, x=x, y=y)
-    b.set(m, layout="horizontal", gap=16)
-    l = b.frame(m, name="Left", dir="v", gap=4, w=120, sw="fixed", sh="fill")
-    b.text(l, "This week", "Footnote", "text/secondary")
-    b.text(l, "30h 41m", "Numeric/Medium")
-    b.text(l, "of 40h", "Caption", "text/tertiary")
-    b.frame(l, name="Spacer", sw="fill", sh="fill")
-    btn = b.frame(l, name="Clock out", dir="h", gap=6, h=34, sh="fixed", radius=17, pad=[0, 12, 0, 12],
-                  cross="center", fill="text/primary")
-    b.icon(btn, "stop", 14, color="bg/canvas", weight="fill")
-    b.text(btn, "Clock out", "Footnote/Strong", "bg/canvas")
-    bars(b, m, w - 32 - 136, 108, [("M", 8.4, "work"), ("T", 8.9, "work"), ("W", 7.6, "work"),
-                                   ("T", 5.8, "today"), ("F", 0, "off")], target=8, maxv=10)
+    b.set(m, layout="horizontal", gap=18, mainAlign="min")
+    l = b.frame(m, name="Left", dir="v", gap=0, w=118, sw="fixed", sh="fill", main="spaceBetween")
+    top = b.frame(l, name="Total", dir="v", gap=0)
+    b.text(top, "This week", "Footnote/Strong", "text/secondary")
+    b.text(top, "30h 41m", "Numeric/Large", fontSize=30, lineHeight=34)
+    b.text(top, "of 40h", "Footnote", "text/tertiary")
+    chip_ = b.frame(l, name="Balance", dir="h", gap=4, pad=[5, 10, 5, 8], radius=12, cross="center", fill="accent/soft")
+    b.icon(chip_, "trend-up", 14, color="accent")
+    b.text(chip_, "+6h 20m", "Footnote/Strong", "accent")
+    bars(b, m, w - 32 - 136, 112, [("M", 8.4, "work"), ("T", 8.9, "home"), ("W", 7.6, "work"),
+                                   ("T", 5.8, "today"), ("F", 0, "off")], target=8, maxv=10, radius=6)
     return m
 
 
 def w_large_week(b, parent, w=364, x=None, y=None):
-    lg = widget(b, parent, "Large · Week", w, 382 if parent is None else 262, x=x, y=y)
-    b.set(lg, gap=10)
-    hd = b.frame(lg, name="Header", dir="h", sw="fill", main="spaceBetween")
-    b.text(hd, "Week 42", "Headline")
-    b.text(hd, "+6h 20m", "Headline", "accent")
-    if parent is None:
-        tot = b.frame(lg, name="Total", dir="h", gap=6, cross="baseline")
-        b.text(tot, "30h 41m", "Numeric/Large")
-        b.text(tot, "of 40h", "Subhead", "text/secondary")
+    full = parent is None
+    lg = widget(b, parent, "Large · Week", w, 382 if full else 262, x=x, y=y)
+    hd = b.frame(lg, name="Header", dir="h", sw="fill", main="spaceBetween", cross="center")
+    left = b.frame(hd, name="Total", dir="v", gap=0)
+    b.text(left, "Week 42", "Footnote/Strong", "text/secondary")
+    t = b.frame(left, name="Value", dir="h", gap=6, cross="baseline")
+    b.text(t, "30h 41m", "Numeric/Large", fontSize=30 if full else 24, lineHeight=34 if full else 28)
+    b.text(t, "of 40h", "Footnote", "text/tertiary")
+    chip_ = b.frame(hd, name="Balance", dir="h", gap=4, pad=[5, 10, 5, 8], radius=12, cross="center", fill="accent/soft")
+    b.icon(chip_, "trend-up", 14, color="accent")
+    b.text(chip_, "+6h 20m", "Footnote/Strong", "accent")
+    rows = b.frame(lg, name="Days", dir="v", gap=20 if full else 8, sw="fill")
     for d, segs, val in WEEK_ROWS:
-        rr = b.frame(lg, name=d, dir="h", gap=10, sw="fill", cross="center")
-        b.text(rr, d, "Footnote/Strong", w=34)
-        ribbon(b, rr, w - 150, segs, labels=False, h=8)
-        b.text(rr, val, "Footnote", "text/secondary", features={"tnum": True})
-    if parent is None:
-        b.frame(lg, name="Spacer", sw="fill", sh="fill")
-        btn = b.frame(lg, name="Clock out", dir="h", gap=6, h=40, sh="fixed", sw="fill", radius=20,
-                      main="center", cross="center", fill="text/primary")
+        today = d == "Thu"
+        rr = b.frame(rows, name=d, dir="h", gap=10, sw="fill", cross="center")
+        b.text(rr, d, "Footnote/Strong" if today else "Footnote", "text/primary" if today else "text/secondary", w=32)
+        ribbon(b, rr, w - 146, segs, labels=False, h=8 if today else 6,
+               now="15:12" if today else None, planned="17:22" if today else None)
+        b.text(rr, val, "Footnote/Strong" if today else "Footnote", "text/primary" if today else "text/secondary",
+               features={"tnum": True})
+    if full:
+        foot = b.frame(lg, name="Footer", dir="h", gap=10, sw="fill", cross="center", pad=[12, 0, 0, 0])
+        st = b.frame(foot, name="Status", dir="v", gap=0, sw="fill")
+        b.text(st, "Working · 5:50", "Subhead/Strong", "accent")
+        b.text(st, "ends ~17:22", "Caption", "text/secondary")
+        btn = b.frame(foot, name="Clock out", dir="h", gap=6, h=40, sh="fixed", radius=20, pad=[0, 16, 0, 14],
+                      cross="center", fill="text/primary")
         b.icon(btn, "stop", 14, color="bg/canvas", weight="fill")
-        b.text(btn, "Clock out · 5:50 today", "Subhead/Strong", "bg/canvas")
-    else:
-        b.text(lg, "Tap a day to open it in Worktime.", "Caption", "text/tertiary")
+        b.text(btn, "Clock out", "Footnote/Strong", "bg/canvas")
     return lg
 
 
@@ -346,20 +421,39 @@ def stage(b, name, x, y, w, h, darkbg=False):
     return f
 
 
+def gauge(b, parent, size, frac, value, label, color="#FFFFFF", track="#FFFFFF40"):
+    """accessoryCircular gauge: a 240° open arc with the value inside, as WidgetKit's Gauge draws it."""
+    import math
+    f = b.frame(parent, name=f"Circular · {label}", w=size, h=size, radius=size / 2, sw="fixed", sh="fixed",
+                fill="#FFFFFF26", dir="v", gap=0, main="center", cross="center")
+    r = size / 2 - 7
+    c = size / 2
+    def arc(a0, sweep):
+        a1 = a0 + sweep
+        x0, y0 = c + r * math.cos(math.radians(a0)), c + r * math.sin(math.radians(a0))
+        x1, y1 = c + r * math.cos(math.radians(a1)), c + r * math.sin(math.radians(a1))
+        return f"M{x0:.2f} {y0:.2f} A{r:.2f} {r:.2f} 0 {1 if sweep > 180 else 0} 1 {x1:.2f} {y1:.2f}"
+    holder = b.frame(f, name="Arc", w=size, h=size, sw="fixed", sh="fixed")
+    b.absolute(holder, 0, 0)
+    b.vector(holder, arc(150, 240), stroke=track, sw=5)
+    b.vector(holder, arc(150, 240 * frac), stroke=color, sw=5)
+    b.text(f, value, "Footnote/Strong", "#FFFFFF", features={"tnum": True}, fontSize=14)
+    b.text(f, label, "Caption", "#FFFFFFB3", fontSize=9, lineHeight=10)
+    return f
+
+
 def lock_accessories(b, parent):
-    """accessoryCircular, accessoryRectangular and accessoryInline (vibrant, monochrome)."""
+    """accessoryInline, accessoryCircular and accessoryRectangular (vibrant rendering)."""
     col_ = b.frame(parent, name="Lock Screen accessories", dir="v", gap=14)
-    b.text(col_, "Thursday 16  ·  ◷ Working 5:50", "Subhead/Strong", "#FFFFFFE6", name="Inline")
+    b.text(col_, "Thu 16  ·  Working 5:50 · ends 17:22", "Subhead/Strong", "#FFFFFFE6", name="Inline")
     r = b.frame(col_, name="Row", dir="h", gap=12, cross="center")
-    for frac, lab in [(0.73, "73%"), (0.62, "+6h")]:
-        c = b.frame(r, name=f"Circular {lab}", w=72, h=72, radius=36, sw="fixed", sh="fixed", fill="#FFFFFF26",
-                    dir="h", main="center", cross="center")
-        rg = ring(b, c, 62, frac, color="#FFFFFF", track="#FFFFFF40", width=6)
-        b.absolute(rg, 5, 5)
-        b.text(c, lab, "Footnote/Strong", "#FFFFFF")
-    rect = b.frame(r, name="Rectangular", w=170, h=72, dir="v", gap=5, pad=[10, 12, 10, 12], radius=16,
+    gauge(b, r, 72, 0.73, "5:50", "DAY")
+    gauge(b, r, 72, 0.62, "+6h", "BAL")
+    rect = b.frame(r, name="Rectangular", w=170, h=72, dir="v", gap=5, pad=[9, 12, 9, 12], radius=16,
                    sw="fixed", sh="fixed", fill="#FFFFFF26")
-    b.text(rect, "Working · 5:50", "Footnote/Strong", "#FFFFFF")
+    hd = b.frame(rect, name="Header", dir="h", sw="fill", main="spaceBetween")
+    b.text(hd, "Working", "Footnote/Strong", "#FFFFFF")
+    b.text(hd, "5:50", "Footnote/Strong", "#FFFFFF", features={"tnum": True})
     ribbon(b, rect, 146, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=6)
     b.text(rect, "ends ~17:22", "Caption", "#FFFFFFCC")
     return col_
@@ -442,59 +536,74 @@ def widget_gallery(b):
 # ---------------------------------------------------------------------------
 
 def watch_notification(b, x, y):
-    root, c = watch_frame(b, "Watch · Arrival notification", x, y, time="08:44")
-    b.text(c, "Arrived at Studio Kreuzberg", "Headline", fontSize=16, w=WW - 28)
-    b.text(c, "Clock in now?", "Footnote", "text/secondary", fontSize=14)
-    b.frame(c, name="Spacer", sw="fill", sh="fill")
-    watch_btn(b, c, "Clock in 08:44", "play", "accent", "on-accent")
-    watch_btn(b, c, "Not today", "x", "bg/sunken", "text/primary")
+    root = b.frame(None, name="Watch · Arrival notification", x=x, y=y, w=WW, h=WH, fill="#000000", clip=True,
+                   radius=46)
+    dark(b, root)
+    from brand import icon
+    hd = b.frame(root, name="App", x=16, y=12, w=WW - 32, dir="h", gap=8, cross="center", sw="fixed")
+    icon(b, hd, 26, "Default")
+    b.text(hd, "Worktime", "Footnote/Strong", "text/secondary", fontSize=13, sw="fill")
+    b.text(hd, "now", "Caption", "text/tertiary", fontSize=12)
+    c = b.frame(root, name="Body", x=16, y=46, w=WW - 32, dir="v", gap=2, sw="fixed")
+    b.text(c, "Arrived at Studio Kreuzberg", "Headline", fontSize=16, lineHeight=20, sw="fill")
+    b.text(c, "Clock in from 08:44?", "Footnote", "text/secondary", fontSize=13)
+    acts = b.frame(root, name="Actions", x=12, y=130, w=WW - 24, dir="v", gap=6, sw="fixed")
+    capsule(b, acts, "Clock in 08:44", "play", "#5CC99B", "#06140E")
+    capsule(b, acts, "Not today", None, "#232624", "#F3F2ED")
     return root
 
 
 def watch_today(b, x, y):
-    root, c = watch_frame(b, "Watch · Today summary", x, y)
-    tot = b.frame(c, name="Total", dir="h", gap=6, cross="baseline")
-    b.text(tot, "5h 50m", "Numeric/Medium", fontSize=24, lineHeight=28)
-    b.text(tot, "today", "Footnote", "text/secondary", fontSize=13)
-    for t, v, colr in [("08:47 – 12:30", "3h 43m", "accent"), ("Break 12:30", "35m", "break"),
-                       ("13:05 – now", "2h 07m", "accent")]:
-        r = b.frame(c, name=t, dir="h", gap=8, pad=[8, 10, 8, 10], radius=14, sw="fill", cross="center",
-                    fill="#1C1C1E")
-        b.rect(r, 4, 22, colr, radius=2)
-        b.text(r, t, "Footnote", "text/primary", sw="fill", fontSize=13)
-        b.text(r, v, "Footnote/Strong", colr, fontSize=13)
-    b.text(c, "Week +6h 20m", "Footnote/Strong", "accent", fontSize=13)
+    root = watch_root(b, "Watch · Today summary", x, y, title="Today")
+    t = b.frame(root, name="Total", x=16, y=36, w=WW - 32, dir="h", gap=6, cross="baseline", sw="fixed")
+    b.text(t, "5h 50m", "Numeric/Large", fontSize=30, lineHeight=34)
+    b.text(t, "worked", "Footnote", "text/secondary", fontSize=13)
+    rb = ribbon(b, root, WW - 32, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=7, name="Ribbon")
+    b.set(rb, x=16, y=80)
+    lst = b.frame(root, name="Sessions", x=12, y=100, w=WW - 24, dir="v", gap=5, sw="fixed")
+    for t_, v, colr in [("08:47 – 12:30", "3h 43m", "accent"), ("Break", "35m", "break"),
+                        ("13:05 – now", "2h 07m", "accent")]:
+        r = b.frame(lst, name=t_, dir="h", gap=8, pad=[9, 12, 9, 10], radius=16, sw="fill", cross="center",
+                    fill="#161816")
+        b.rect(r, 4, 20, colr, radius=2)
+        b.text(r, t_, "Footnote", "text/primary", sw="fill", fontSize=14)
+        b.text(r, v, "Footnote/Strong", colr, fontSize=14)
     return root
 
 
 def watch_offline(b, x, y):
-    root, c = watch_frame(b, "Watch · Offline sync", x, y, time="17:31")
-    mid = b.frame(c, name="Main", dir="v", gap=8, sw="fill", sh="fill", main="center", cross="center")
-    cc = b.frame(mid, name="Glyph", w=52, h=52, radius=26, dir="h", main="center", cross="center", sw="fixed",
-                 sh="fixed", fill="accent/soft")
-    b.icon(cc, "check-circle", 30, color="accent", weight="fill")
-    b.text(mid, "Clocked out 17:29", "Headline", fontSize=16)
-    b.text(mid, "Saved on Apple Watch. Syncs when your iPhone is nearby.", "Footnote", "text/secondary",
-           w=WW - 40, textAlign="center", fontSize=13)
-    pill_ = b.frame(c, name="Sync", dir="h", gap=6, pad=[6, 12, 6, 12], radius=14, cross="center", fill="#1C1C1E")
-    b.icon(pill_, "arrows-clockwise", 14, color="text/secondary")
-    b.text(pill_, "1 change waiting", "Caption", "text/secondary", fontSize=12)
+    root = watch_root(b, "Watch · Offline sync", x, y, time="17:31", glow_color="#2E9C70")
+    mid = b.frame(root, name="Main", x=12, y=44, w=WW - 24, dir="v", gap=8, cross="center", sw="fixed")
+    cc = b.frame(mid, name="Glyph", w=56, h=56, radius=28, dir="h", main="center", cross="center", sw="fixed",
+                 sh="fixed", fill="#5CC99B")
+    b.icon(cc, "check", 30, color="#06140E")
+    b.text(mid, "Clocked out 17:29", "Headline", fontSize=17)
+    b.text(mid, "8h 09m today", "Footnote", "text/secondary", fontSize=13)
+    pill_ = b.frame(root, name="Sync", x=24, y=190, w=WW - 48, h=36, dir="h", gap=6, radius=18, main="center",
+                    cross="center", fill="#161816", sw="fixed", sh="fixed")
+    b.icon(pill_, "arrows-clockwise", 15, color="text/secondary")
+    b.text(pill_, "Waiting for iPhone", "Caption", "text/secondary", fontSize=12)
     return root
 
 
 def watch_smartstack(b, x, y):
     root = b.frame(None, name="Watch · Smart Stack", x=x, y=y, w=WW, h=WH, fill="#000000", clip=True, radius=46)
     dark(b, root)
-    b.text(root, "15:12", "Numeric/Large", "text/primary", x=WW - 96, y=8, fontSize=30, lineHeight=34)
-    for k, (title, body, colr) in enumerate([("WORKTIME", "Working · 5:50", "accent"),
-                                             ("WORKTIME", "Week +6h 20m", "accent")]):
-        card_ = b.frame(root, name=f"Widget {k + 1}", x=10, y=56 + k * 92, w=WW - 20, h=84 if k == 0 else 76,
-                        dir="v", gap=4, pad=[10, 12, 10, 12], radius=20, sw="fixed", sh="fixed",
-                        fill="#1C1C1E", opacity=1 if k == 0 else 0.55)
-        b.text(card_, title, "Caption", colr, fontSize=11)
-        b.text(card_, body, "Headline", fontSize=15)
-        if k == 0:
-            ribbon(b, card_, WW - 44, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=7)
+    glow(b, root, "#2E9C70", opacity=0.35)
+    b.text(root, "15:12", "Numeric/Large", "text/primary", x=WW - 100, y=6, fontSize=32, lineHeight=36)
+    from brand import icon
+    c1 = b.frame(root, name="Widget · Working", x=10, y=50, w=WW - 20, h=96, dir="v", gap=6,
+                 pad=[12, 14, 12, 14], radius=24, sw="fixed", sh="fixed", fill="#1B1E1C")
+    hd = b.frame(c1, name="Header", dir="h", gap=6, cross="center", sw="fill")
+    icon(b, hd, 18, "Default")
+    b.text(hd, "Working", "Footnote/Strong", "accent", sw="fill", fontSize=13)
+    b.text(hd, "5:50", "Numeric/Medium", "text/primary", fontSize=20, lineHeight=24)
+    ribbon(b, c1, WW - 48, SEGS_NOW, now="15:12", planned="17:22", labels=False, h=7)
+    b.text(c1, "ends 17:22", "Caption", "text/secondary", fontSize=12)
+    c2 = b.frame(root, name="Widget · Week", x=18, y=156, w=WW - 36, h=72, dir="v", gap=2,
+                 pad=[10, 14, 10, 14], radius=22, sw="fixed", sh="fixed", fill="#141614", opacity=0.75)
+    b.text(c2, "This week · +6h 20m", "Caption", "accent", fontSize=12)
+    b.text(c2, "30h 41m", "Headline", fontSize=17)
     return root
 
 

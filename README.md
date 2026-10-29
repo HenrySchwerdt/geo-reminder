@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="design/exports/brand/app-icon-1024.png" width="120" alt="Worktime app icon: a day arc that starts at an amber dot">
+  <img src="design/exports/brand/app-icon-1024.png" width="120" alt="Worktime app icon: a location pin dropping onto a day arc">
 </p>
 
 <h1 align="center">Worktime</h1>
@@ -35,15 +35,28 @@ detected time is offered as the answer. Home-office days use your weekly pattern
 
 ![Onboarding, location permission, arrival notification, geofence radius, weekly pattern](design/exports/brand/README%20·%20Onboarding.png)
 
-### Lock Screen, Dynamic Island, widgets and Apple Watch
+### Apple Watch
+Built for the wrist, not shrunk from the phone: a coloured glow shows the state, a large ring shows the day's
+progress, and the actions sit in the corners where your thumb expects them.
+
+![Apple Watch: clock in, working, break, arrival notification, complications](design/exports/brand/README%20·%20Watch.png)
+
+### Widgets
+Every widget family comes in light and dark. Live counting uses system timer text, and the buttons are
+App Intents, so you can clock in or start a break without opening the app.
+
+![Widgets: small working, break, clock in, medium today, large week](design/exports/brand/README%20·%20Widgets.png)
+
+### Lock Screen, Dynamic Island, widgets in context
 ![Live Activity, Dynamic Island, Home Screen widgets, Apple Watch](design/exports/brand/README%20·%20Ecosystem.png)
 
 ### Dark mode
 ![Dark mode screens](design/exports/brand/README%20·%20Dark.png)
 
 ### Logo
-The day arc starts at an amber dot, the moment you arrive. It reads as a clock, a progress ring and a place
-marker, the three ideas behind Worktime.
+A location pin drops onto the start of a day arc. You arrive, and your working day fills up. Place and
+time, the two things Worktime connects, in one warm mark. The default icon sits on warm paper; the dark,
+clear (Liquid Glass) and tinted appearances and a green alternate icon are on the Brand page.
 
 ![Logo system: app icon, construction, lockups, iOS 26 appearances, small sizes](design/exports/brand/Logo.png)
 
