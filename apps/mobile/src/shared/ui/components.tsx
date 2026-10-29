@@ -25,16 +25,18 @@ export function Text({
   style,
   children,
   numberOfLines,
+  adjustsFontSizeToFit,
 }: {
   variant?: TypeName;
   color?: ColorName;
   style?: StyleProp<TextStyle>;
   children: ReactNode;
   numberOfLines?: number;
+  adjustsFontSizeToFit?: boolean;
 }) {
   const c = useColors();
   return (
-    <RNText numberOfLines={numberOfLines} style={[type[variant] as TextStyle, { color: c[color] }, style]}>
+    <RNText numberOfLines={numberOfLines} adjustsFontSizeToFit={adjustsFontSizeToFit} style={[type[variant] as TextStyle, { color: c[color] }, style]}>
       {children}
     </RNText>
   );
@@ -51,6 +53,8 @@ export function Screen({ children, title, subtitle, trailing }: { children: Reac
     <ScrollView
       style={{ flex: 1, backgroundColor: c['bg/canvas'] }}
       contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       contentContainerStyle={[styles.screen, title && Platform.OS === 'web' && styles.webTabsInset]}>
       {title ? (
         <View style={styles.titleRow}>
@@ -136,7 +140,7 @@ export function Button({
         flex && { flex: 1 },
       ]}>
       {icon ? <Icon name={icon} size={18} color={s.fg} /> : null}
-      <Text variant="headline" color={s.fg}>
+      <Text variant="headline" color={s.fg} style={{ flexShrink: 1, textAlign: 'center' }}>
         {label}
       </Text>
     </Pressable>
@@ -190,7 +194,7 @@ export function ListRow({
 }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+    <Pressable onPress={onPress} accessible={Boolean(onPress)} accessibilityRole={onPress ? 'button' : undefined} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
       <View style={styles.row}>
         {icon ? (
           <View style={[styles.tile, { backgroundColor: c[`${tint}/soft` as ColorName] }]}>
@@ -206,7 +210,7 @@ export function ListRow({
           ) : null}
         </View>
         {value ? (
-          <Text variant="body" color="text/secondary">
+          <Text variant="body" color="text/secondary" style={{ flexShrink: 1, maxWidth: '50%', textAlign: 'right' }}>
             {value}
           </Text>
         ) : null}
@@ -221,7 +225,7 @@ export function ListRow({
 export function ToggleRow(props: { title: string; subtitle?: string; value: boolean; onChange: (v: boolean) => void; icon?: IconName; last?: boolean }) {
   const c = useColors();
   const { value, onChange, ...row } = props;
-  return <ListRow {...row} accessory={<Switch value={value} onValueChange={onChange} trackColor={{ true: c.accent, false: c['bg/track'] }} />} />;
+  return <ListRow {...row} accessory={<Switch accessibilityLabel={props.title} value={value} onValueChange={onChange} trackColor={{ true: c.accent, false: c['bg/track'] }} />} />;
 }
 
 export function Chips<T extends string | number>({ options, value, onChange, format }: { options: T[]; value: T; onChange: (v: T) => void; format?: (v: T) => string }) {
@@ -233,6 +237,8 @@ export function Chips<T extends string | number>({ options, value, onChange, for
         return (
           <Pressable
             key={String(o)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
             onPress={() => onChange(o)}
             style={[styles.chip, { backgroundColor: on ? c['text/primary'] : c['bg/elevated'], borderColor: c.separator, borderWidth: on ? 0 : StyleSheet.hairlineWidth }]}>
             <Text variant="subheadStrong" color={on ? 'bg/canvas' : 'text/primary'}>
@@ -254,11 +260,11 @@ const styles = StyleSheet.create({
   cardShadow: { boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05)' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingLeft: 10, paddingRight: 12, borderRadius: 14, alignSelf: 'flex-start' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  button: { minHeight: 52, borderRadius: 26, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderCurve: 'continuous' },
+  button: { minHeight: 52, paddingVertical: 12, borderRadius: 26, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderCurve: 'continuous' },
   group: { borderRadius: radius.card, overflow: 'hidden', borderCurve: 'continuous' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.m, paddingVertical: space.m, paddingHorizontal: space.l, minHeight: 56 },
   tile: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   separator: { height: StyleSheet.hairlineWidth },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  chip: { minHeight: 44, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 });

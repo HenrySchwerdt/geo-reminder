@@ -8,6 +8,15 @@ vi.mock('@/shared/lib/kv', () => {
 const { useSettings, getSettings } = await import('@/features/settings/store');
 
 describe('settings store', () => {
+  it('removes an optional salary when resetting settings', () => {
+    useSettings.getState().update({ salary: { annualGrossCents: 6000000, currency: 'EUR', paidVacationDays: 30 } });
+    useSettings.getState().update({ weeklyHours: 32 });
+    expect(getSettings().salary?.annualGrossCents).toBe(6000000);
+    useSettings.getState().reset();
+    expect(getSettings().salary).toBeUndefined();
+    expect(getSettings().weeklyHours).toBe(40);
+  });
+
   it('keeps other fields when patching one', () => {
     useSettings.getState().update({ pattern: ['office', 'home', 'office', 'home', 'office', 'off', 'off'] });
     useSettings.getState().update({ weeklyHours: 32 });

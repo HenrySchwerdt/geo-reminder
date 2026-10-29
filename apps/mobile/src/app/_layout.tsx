@@ -3,6 +3,7 @@ import '@/features/geofencing/tasks';
 import '@/features/surfaces/register';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
@@ -27,11 +28,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={{ ...base, colors: { ...base.colors, background: c['bg/canvas'], primary: c.accent, card: c['bg/elevated'], text: c['text/primary'] } }}>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <NotificationBridge />
       <SurfaceSync />
       <OnboardingGate />
-      <Stack screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: c['bg/canvas'] }, headerTintColor: c.accent }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShadowVisible: false, headerBackButtonDisplayMode: 'minimal', headerStyle: { backgroundColor: c['bg/canvas'] }, headerTintColor: c.accent }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Worktime' }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="workplace/[id]" options={{ presentation: 'modal', title: 'Workplace' }} />
         <Stack.Screen name="session/[id]" options={{ presentation: 'modal' }} />
@@ -39,6 +41,8 @@ export default function RootLayout() {
         <Stack.Screen name="clock/out" options={{ presentation: 'formSheet', headerShown: false, sheetGrabberVisible: true, sheetAllowedDetents: [0.85, 1] }} />
         <Stack.Screen name="location" options={{ title: 'Location' }} />
         <Stack.Screen name="working-hours" options={{ title: 'Working hours' }} />
+        <Stack.Screen name="pay/index" options={{ title: 'Pay & time' }} />
+        <Stack.Screen name="pay/contract" options={{ title: 'Salary contract', presentation: 'modal' }} />
         <Stack.Screen name="breaks" options={{ title: 'Breaks' }} />
         <Stack.Screen name="reminders" options={{ title: 'Reminders' }} />
         <Stack.Screen name="appearance" options={{ title: 'Appearance' }} />

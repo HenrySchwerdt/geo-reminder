@@ -8,7 +8,7 @@ import { missedPrompt } from '@/features/clock/missed';
 import { useGeofence } from '@/features/geofencing/store';
 import { findIncomplete, targetFor } from '@/features/history/balance';
 import { dailyTargetMs, useSettings } from '@/features/settings/store';
-import { clockIn, clockOut, endBreak, startBreak } from '@/features/tracking/actions';
+import { clockIn, endBreak, startBreak } from '@/features/tracking/actions';
 import { formatDayFull, formatTime } from '@/features/history/dates';
 import { currentDay, daySummary, weekSummary } from '@/features/tracking/selectors';
 import { useTracking } from '@/features/tracking/store';
@@ -119,7 +119,7 @@ export default function Today() {
           {today.state === 'working' ? (
             <>
               <Button label="Break" icon="break" style="break" flex onPress={() => startBreak()} />
-              <Button label="Clock out" icon="stop" style="ink" flex onPress={() => clockOut()} />
+              <Button label="Clock out" icon="stop" style="ink" flex onPress={() => router.push('/clock/out')} />
             </>
           ) : null}
           {today.state === 'break' ? <Button label="End break" icon="play" flex onPress={() => endBreak()} /> : null}
@@ -155,7 +155,7 @@ export default function Today() {
             </Text>
           </View>
         </Row>
-        <WeekBars days={week.days.filter((d) => d.isWorkday || d.hours > 0)} targetHours={target / 3_600_000} />
+        <WeekBars days={week.days.filter((d) => d.isWorkday || d.hours > 0)} targetHours={dailyMs / 3_600_000} />
       </Card>
     </Screen>
   );

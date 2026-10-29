@@ -30,6 +30,7 @@ export default function Settings() {
       <SectionHeader>Work</SectionHeader>
       <Group>
         <ListRow title="Working hours" value={`${formatHours(weeklyHours)} · ${describeWorkdays(workdays)}`} icon="clock" onPress={() => router.push('/working-hours')} />
+        <ListRow title="Pay & time" subtitle="Salary, vacation and the value of your hours" icon="pay" onPress={() => router.push('/pay')} />
         <ListRow title="Breaks" value={breakRules.length ? `${breakRules.length} ${breakRules.length === 1 ? 'rule' : 'rules'}` : 'None'} icon="break" tint="break" onPress={() => router.push('/breaks')} />
         <ListRow title="Reminders" subtitle={describeReminders(reminders)} icon="bell" onPress={() => router.push('/reminders')} last />
       </Group>

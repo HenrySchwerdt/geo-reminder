@@ -19,6 +19,7 @@ const MIGRATIONS = [
   `ALTER TABLE events ADD COLUMN recorded_at INTEGER;
    ALTER TABLE events ADD COLUMN supersedes TEXT;
    ALTER TABLE events ADD COLUMN voids INTEGER;`,
+  `ALTER TABLE events ADD COLUMN tz TEXT;`,
 ];
 
 function migrate() {
@@ -42,6 +43,7 @@ type Row = {
   recorded_at: number | null;
   supersedes: string | null;
   voids: number | null;
+  tz: string | null;
 };
 
 const fromRow = (r: Row) =>
@@ -54,6 +56,7 @@ const fromRow = (r: Row) =>
     recordedAt: r.recorded_at ?? undefined,
     supersedes: r.supersedes ?? undefined,
     voids: r.voids ? true : undefined,
+    tz: r.tz ?? undefined,
   });
 
 export function loadAll(): TimeEvent[] {
@@ -70,7 +73,7 @@ export function insert(events: TimeEvent[]) {
   db.withTransactionSync(() => {
     for (const e of events) {
       db.runSync(
-        'INSERT OR IGNORE INTO events (id, type, at, workplace_id, source, recorded_at, supersedes, voids) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR IGNORE INTO events (id, type, at, workplace_id, source, recorded_at, supersedes, voids, tz) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         e.id,
         e.type,
         e.at,
@@ -79,6 +82,7 @@ export function insert(events: TimeEvent[]) {
         e.recordedAt ?? null,
         e.supersedes ?? null,
         e.voids ? 1 : null,
+        e.tz ?? null,
       );
     }
   });

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Linking, View } from 'react-native';
 
-import { locationAccess, requestAlwaysLocation, type LocationAccess } from '@/features/geofencing/permissions';
+import { locationAccess, requestForegroundLocation, type LocationAccess } from '@/features/geofencing/permissions';
 import { ALWAYS_LABEL, LOCATION_DISCLOSURE, LOCATION_PROMPT_NOTE, SETTINGS_STEPS } from '@/features/onboarding/copy';
 import { NumberedSteps, OnboardingFrame, Point, TextButton } from '@/features/onboarding/components';
 import { locationView, nextStep, stepHref } from '@/features/onboarding/steps';
@@ -28,8 +28,10 @@ export default function LocationStep() {
   async function allow() {
     setBusy(true);
     try {
-      setAccess(await requestAlwaysLocation());
+      const result = await requestForegroundLocation();
+      setAccess(result);
       setRequested(true);
+      if (result === 'whenInUse' || result === 'always') next();
     } finally {
       setBusy(false);
     }

@@ -6,7 +6,7 @@ import { locationAccess, requestAlwaysLocation, type LocationAccess } from '@/fe
 import { dispatch, resync } from '@/features/geofencing/runner';
 import { useGeofence } from '@/features/geofencing/store';
 import { requestNotificationPermission } from '@/features/notifications';
-import { LOCATION_DISCLOSURE, LOCATION_PROMPT_NOTE } from '@/features/onboarding/copy';
+import { BACKGROUND_PROMPT_NOTE, LOCATION_DISCLOSURE } from '@/features/onboarding/copy';
 import { useSettings } from '@/features/settings/store';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { useColors } from '@/shared/theme';
@@ -62,7 +62,7 @@ export default function LocationScreen() {
             </Text>
           ))}
           <Text variant="caption" color="text/secondary">
-            {LOCATION_PROMPT_NOTE}
+            {BACKGROUND_PROMPT_NOTE}
           </Text>
           <Button label={access === 'denied' ? 'Open settings' : 'Allow location'} style="ink" onPress={access === 'denied' ? () => Linking.openSettings() : grant} />
         </Card>

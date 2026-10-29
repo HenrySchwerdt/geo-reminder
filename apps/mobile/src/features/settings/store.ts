@@ -34,7 +34,7 @@ export const useSettings = create<SettingsState>()(
         const current = pick(get());
         set(SettingsSchema.parse({ ...current, ...reconcile(current, patch) }));
       },
-      reset: () => set(DEFAULT_SETTINGS),
+      reset: () => set({ ...DEFAULT_SETTINGS, salary: undefined }),
     }),
     persistOptions<SettingsState, Settings>('settings', SettingsSchema, pick),
   ),

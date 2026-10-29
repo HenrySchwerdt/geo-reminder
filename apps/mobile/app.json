@@ -109,6 +109,7 @@
       "@react-native-community/datetimepicker",
       "expo-localization",
       "@bacons/apple-targets",
+      "./plugins/with-watch-privacy",
       [
         "expo-widgets",
         {

@@ -10,8 +10,9 @@
   It reminds you to clock in and out when you arrive at or leave work, and keeps a record you can always correct.
 </p>
 
-> **Status:** the product design is complete, and the iOS & Android app (Expo) is in progress.
-> The adaptive geofencing engine and the Today flow work; Calendar editing, widgets and watch apps come next.
+> **Status:** native iPhone, Android, widget and Apple Watch builds pass. Tracking, calendar corrections,
+> exports and salary estimates are implemented. Simulator coverage and remaining release checks are recorded
+> in [the native QA report](docs/qa/ios-report.md).
 
 ![Worktime: Today screen in light and dark mode and the calendar](design/exports/brand/README%20·%20Hero.png)
 
@@ -34,6 +35,12 @@ Geofences only fire when you arrive at or leave a workplace, and the result is a
 detected time is offered as the answer. Home-office days use your weekly pattern instead of location.
 
 ![Onboarding, location permission, arrival notification, geofence radius, weekly pattern](design/exports/brand/README%20·%20Onboarding.png)
+
+### Pay & time
+Enter annual gross salary, weekly hours and paid vacation in Settings → Pay & time. Worktime uses your
+weekly pattern and the calendar year to calculate planned working hours after vacation and an effective
+gross hourly rate. Completed tracked sessions show their estimated gross value; fixed salary payments
+remain a separate reference. Public holidays, tax, bonuses and historical contract changes are not included.
 
 ### Apple Watch
 Built for the wrist, not shrunk from the phone: a coloured glow shows the state, a large ring shows the day's

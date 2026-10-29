@@ -6,8 +6,12 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "patch-package --error-on-fail",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "mobile": "npm run start --workspace @worktime/mobile"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }

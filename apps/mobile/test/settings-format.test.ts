@@ -2,7 +2,7 @@ import { DEFAULT_BREAK_RULE_SETTINGS } from '@worktime/core';
 import { describe, expect, it } from 'vitest';
 
 import { resolveScheme } from '@/features/settings/appearance';
-import { addRule, describeReminders, describeWorkdays, formatMinutes, hhmmFromMinutes, isGermanLaw, MAX_BREAK_RULES, minutesFromHhmm, parseWeeklyHours, removeRule, setDayMode, updateRule } from '@/features/settings/format';
+import { addRule, describeReminders, describeWorkdays, formatHours, formatMinutes, hhmmFromMinutes, isGermanLaw, MAX_BREAK_RULES, minutesFromHhmm, parseWeeklyHours, removeRule, setDayMode, updateRule } from '@/features/settings/format';
 
 describe('appearance', () => {
   it('follows the system only when asked to', () => {
@@ -16,6 +16,9 @@ describe('appearance', () => {
 describe('working hours', () => {
   it('parses typed weekly hours within 1–80', () => {
     expect(parseWeeklyHours('37,5')).toBe(37.5);
+    expect(parseWeeklyHours('38.25')).toBe(38.25);
+    expect(formatHours(38.25)).toBe('38.25 h');
+    expect(parseWeeklyHours('38.255')).toBeUndefined();
     expect(parseWeeklyHours(' 40 ')).toBe(40);
     expect(parseWeeklyHours('0')).toBeUndefined();
     expect(parseWeeklyHours('81')).toBeUndefined();

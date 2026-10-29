@@ -51,6 +51,14 @@ struct TodayPage: View {
 
   // Not working: the big Clock in button.
   private func offContent(_ snapshot: SurfaceSnapshot, now: Date) -> some View {
+    ViewThatFits(in: .vertical) {
+      offLayout(snapshot, now: now, diameter: 100)
+      offLayout(snapshot, now: now, diameter: 84)
+      offLayout(snapshot, now: now, diameter: 68)
+    }
+  }
+
+  private func offLayout(_ snapshot: SurfaceSnapshot, now: Date, diameter: CGFloat) -> some View {
     VStack(spacing: 6) {
       offHeadline(snapshot)
       Button {
@@ -61,7 +69,7 @@ struct TodayPage: View {
           Text("Clock in").font(.system(size: 16, weight: .semibold, design: .rounded))
         }
         .foregroundStyle(Theme.onAccent)
-        .frame(width: 100, height: 100)
+        .frame(width: diameter, height: diameter)
         .background(Circle().fill(Theme.accent))
       }
       .buttonStyle(.plain)
@@ -96,6 +104,7 @@ struct TodayPage: View {
         .foregroundStyle(Theme.textSecondary)
         .multilineTextAlignment(.center)
         .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
     } else if let name = snapshot.workplaceName {
       Text(name)
         .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -112,32 +121,53 @@ struct TodayPage: View {
   private func activeContent(_ snapshot: SurfaceSnapshot, now: Date, onBreak: Bool) -> some View {
     let tint = onBreak ? Theme.amber : Theme.accent
     return GeometryReader { geo in
-      let ring = max(80, min(geo.size.width, geo.size.height - 52))
+      let syncHeight: CGFloat = model.pendingCount > 0 ? 38 : 0
+      let ring = max(60, min(geo.size.width, geo.size.height - 52 - syncHeight))
+      let compact = ring < 100
       VStack(spacing: 8) {
-        ZStack {
-          ProgressRing(progress: snapshot.progress(at: now), tint: tint)
-          VStack(spacing: 2) {
-            Text(onBreak ? "BREAK" : "WORKING")
-              .font(.system(size: 12, weight: .semibold, design: .rounded))
-              .tracking(1)
-              .foregroundStyle(tint)
-            timer(snapshot, onBreak: onBreak, now: now)
-              .font(.system(size: ring * 0.2, weight: .bold, design: .rounded).monospacedDigit())
-              .foregroundStyle(tint)
-              .lineLimit(1)
-              .minimumScaleFactor(0.6)
-            detail(snapshot, onBreak: onBreak, now: now)
-              .font(.system(size: 12, design: .rounded))
+        if compact {
+          readout(snapshot, onBreak: onBreak, now: now, tint: tint, timerSize: 24)
+        } else {
+          ZStack {
+            ProgressRing(progress: snapshot.progress(at: now), tint: tint)
+            readout(snapshot, onBreak: onBreak, now: now, tint: tint, timerSize: ring * 0.2)
+              .padding(.horizontal, 16)
+          }
+          .frame(width: ring, height: ring)
+        }
+
+        actions(onBreak: onBreak, compact: compact)
+        if model.pendingCount > 0 {
+          if compact {
+            Label("Waiting for iPhone", systemImage: "arrow.triangle.2.circlepath")
+              .font(.system(size: 11, weight: .medium, design: .rounded))
               .foregroundStyle(Theme.textSecondary)
               .lineLimit(1)
+          } else {
+            SyncPill()
           }
-          .padding(.horizontal, 16)
         }
-        .frame(width: ring, height: ring)
-
-        actions(onBreak: onBreak)
       }
       .frame(maxWidth: .infinity)
+    }
+  }
+
+  private func readout(_ snapshot: SurfaceSnapshot, onBreak: Bool, now: Date, tint: Color, timerSize: CGFloat) -> some View {
+    VStack(spacing: 2) {
+      Text(onBreak ? "BREAK" : "WORKING")
+        .font(.system(size: 12, weight: .semibold, design: .rounded))
+        .tracking(1)
+        .foregroundStyle(tint)
+        .lineLimit(1)
+      timer(snapshot, onBreak: onBreak, now: now)
+        .font(.system(size: timerSize, weight: .bold, design: .rounded).monospacedDigit())
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+      detail(snapshot, onBreak: onBreak, now: now)
+        .font(.system(size: 12, design: .rounded))
+        .foregroundStyle(Theme.textSecondary)
+        .lineLimit(1)
     }
   }
 
@@ -164,15 +194,18 @@ struct TodayPage: View {
   }
 
   @ViewBuilder
-  private func actions(onBreak: Bool) -> some View {
+  private func actions(onBreak: Bool, compact: Bool) -> some View {
     HStack(spacing: 8) {
       if onBreak {
         Button {
           model.send(.endBreak)
         } label: {
-          Label("Resume work", systemImage: "play.fill")
+          Label(compact ? "Resume" : "Resume work", systemImage: "play.fill")
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
         .buttonStyle(PillButtonStyle(fill: Theme.accent, foreground: Theme.onAccent))
+        .accessibilityLabel("Resume work")
       } else {
         Button {
           model.send(.startBreak)
