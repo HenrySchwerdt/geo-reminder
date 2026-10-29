@@ -135,7 +135,7 @@ export default function DataScreen() {
           </View>
           {preview.settingsDiffer ? (
             <Group>
-              <ToggleRow title="Also restore settings" subtitle="Replaces your weekly hours, workdays and precision." value={restoreSettings} onChange={setRestoreSettings} last />
+              <ToggleRow title="Also restore settings" subtitle="Replaces your working hours, weekly pattern, breaks, reminders and appearance." value={restoreSettings} onChange={setRestoreSettings} last />
             </Group>
           ) : null}
           <Button label="Import" icon="import" onPress={confirmImport} disabled={busy} />
