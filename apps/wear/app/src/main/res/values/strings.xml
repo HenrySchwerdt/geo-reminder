@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Worktime</string>
+
+    <string name="state_working">Working</string>
+    <string name="state_break">Break</string>
+    <string name="state_off">Not working</string>
+
+    <string name="action_clock_in">Clock in</string>
+    <string name="action_break">Break</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_clock_out">Clock out</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="ends_at">ends %1$s</string>
+    <string name="worked_so_far">%1$s worked</string>
+    <string name="today_worked">%1$s today</string>
+    <string name="worked_today">%1$s worked today</string>
+    <string name="week_balance">Week %1$s</string>
+
+    <string name="confirm_title">Clock out?</string>
+    <string name="open_phone">Open Worktime on your phone</string>
+    <string name="sync_pending">Will sync when your phone is nearby</string>
+
+    <string name="tile_label">Worktime</string>
+    <string name="complication_progress_label">Worktime progress</string>
+    <string name="complication_worked_label">Worked today</string>
+    <string name="complication_progress_description">Worked today: %1$s</string>
+    <string name="complication_worked_description">Worked today</string>
+</resources>
