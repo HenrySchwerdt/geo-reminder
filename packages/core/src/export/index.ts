@@ -2,6 +2,7 @@
 import { ExportFileSchema, type ExportFile, type Settings, type TimeEvent, type Workplace } from '../schema';
 import { buildSessions, effectiveEvents, sessionDay, sessionZone } from '../time/ledger';
 import { clockTime } from '../time/zone';
+import { findIncomplete } from '../time/complete';
 
 const cell = (v: string | number) => {
   const s = String(v);
@@ -13,19 +14,23 @@ export const CSV_HEADER = ['date', 'start', 'end', 'break_minutes', 'worked_minu
 /**
  * One row per work session, in the zone it was recorded in (`timeZone` for sessions from before zones were
  * stored): the date is the day the session started, so a night shift stays one row. UTF-8 with BOM and CRLF
- * so Excel, Numbers and Google Sheets open it correctly. Open sessions are exported up to `now` with an empty end.
+ * so Excel, Numbers and Google Sheets open it correctly. Open sessions are exported up to `now` with an empty end;
+ * sessions that never got a check-out have an empty end and no durations (they don't count until fixed).
  */
 export function toCsv(events: TimeEvent[], workplaces: Workplace[], timeZone: string, now: number): string {
   const names = new Map(workplaces.map((w) => [w.id, w.name]));
-  const rows = buildSessions(effectiveEvents(events), now).map((s) => {
+  const effective = effectiveEvents(events);
+  const incomplete = new Set(findIncomplete(effective, now, timeZone).map((s) => s.id));
+  const rows = buildSessions(effective, now).map((s) => {
     const tz = sessionZone(s, timeZone);
+    const missing = incomplete.has(s.id);
     return [
       sessionDay(s, timeZone),
       clockTime(s.start, tz),
-      s.end !== undefined ? clockTime(s.end, tz) : '',
-      Math.round(s.breakMs / 60_000),
-      Math.round(s.workedMs / 60_000),
-      (s.workedMs / 3_600_000).toFixed(2),
+      s.end !== undefined && !missing ? clockTime(s.end, tz) : '',
+      missing ? '' : Math.round(s.breakMs / 60_000),
+      missing ? '' : Math.round(s.workedMs / 60_000),
+      missing ? '' : (s.workedMs / 3_600_000).toFixed(2),
       s.workplaceId ? (names.get(s.workplaceId) ?? '') : '',
       s.source,
       tz,

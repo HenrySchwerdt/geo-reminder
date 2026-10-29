@@ -52,6 +52,7 @@ export interface WeekDay {
   label: string;
   day: DateKey;
   hours: number;
+  workedMs: number;
   today: boolean;
   isWorkday: boolean;
   firstIn?: number;
@@ -84,6 +85,7 @@ export function weekSummary(ledger: TimeEvent[], now: number, workdays: number[]
       label,
       day,
       hours: d.workedMs / 3_600_000,
+      workedMs: d.workedMs,
       today: day === today,
       isWorkday: workdays.includes(i + 1),
       firstIn: d.firstIn,
@@ -94,7 +96,7 @@ export function weekSummary(ledger: TimeEvent[], now: number, workdays: number[]
     };
   });
   const finished = days.filter((d) => d.day >= since && d.day < today && !d.running && !d.incomplete);
-  const worked = days.reduce((t, d) => t + d.hours * 3_600_000, 0);
-  const balance = finished.reduce((t, d) => t + d.hours * 3_600_000 - (d.isWorkday ? dailyTargetMs : 0), 0);
+  const worked = days.reduce((t, d) => t + d.workedMs, 0);
+  const balance = finished.reduce((t, d) => t + d.workedMs - (d.isWorkday ? dailyTargetMs : 0), 0);
   return { days, worked, balance };
 }

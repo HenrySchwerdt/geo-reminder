@@ -51,7 +51,7 @@ export function Screen({ children, title, subtitle, trailing }: { children: Reac
     <ScrollView
       style={{ flex: 1, backgroundColor: c['bg/canvas'] }}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.screen}>
+      contentContainerStyle={[styles.screen, title && Platform.OS === 'web' && styles.webTabsInset]}>
       {title ? (
         <View style={styles.titleRow}>
           <View style={{ flex: 1 }}>
@@ -246,6 +246,8 @@ export function Chips<T extends string | number>({ options, value, onChange, for
 }
 
 const styles = StyleSheet.create({
+  // On web the tab bar sits on top of the page instead of floating at the bottom.
+  webTabsInset: { paddingTop: 72 },
   screen: { padding: space.l, paddingBottom: 140, gap: space.l },
   titleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.m, marginTop: Platform.OS === 'android' ? space.xl : 0 },
   card: { borderRadius: radius.card, padding: space.xl, gap: space.m, borderCurve: 'continuous' },

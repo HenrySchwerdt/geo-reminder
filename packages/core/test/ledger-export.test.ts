@@ -74,6 +74,15 @@ describe('CSV export', () => {
   });
 });
 
+describe('CSV export of a forgotten check-out', () => {
+  it('leaves the end and durations empty instead of counting until the next clock-in', () => {
+    const forgotten = [ev('a', 'clockIn', T(8, 52)), ev('x', 'clockIn', T(8, 50) + 86_400_000), ev('y', 'clockOut', T(17) + 86_400_000)];
+    const lines = toCsv(forgotten, [studio], 'Europe/Berlin', T(20) + 86_400_000).slice(1).trim().split('\r\n');
+    expect(lines[1]).toBe('2025-10-16,08:52,,,,,"Studio, Kreuzberg",app,Europe/Berlin');
+    expect(lines[2]).toBe('2025-10-17,08:50,17:00,0,490,8.17,"Studio, Kreuzberg",app,Europe/Berlin');
+  });
+});
+
 describe('JSON backup', () => {
   const file = toExportFile({ settings: DEFAULT_SETTINGS, workplaces: [studio], events: day, timeZone: 'Europe/Berlin', now: T(20) });
 
