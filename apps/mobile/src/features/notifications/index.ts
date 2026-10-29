@@ -5,6 +5,7 @@
  */
 import * as Notifications from 'expo-notifications';
 
+import { handleTimeResponse } from '@/features/reminders/respond';
 import { clockIn, clockOut } from '@/features/tracking/actions';
 
 export type ReminderKind = 'arrival' | 'departure';
@@ -62,6 +63,7 @@ export async function cancelReminder(kind: ReminderKind, workplaceId: string) {
 
 /** Handle a tapped action. Returns true when it was one of ours. */
 export async function handleResponse(response: Notifications.NotificationResponse): Promise<boolean> {
+  if (await handleTimeResponse(response)) return true;
   const data = response.notification.request.content.data as { kind?: ReminderKind; workplaceId?: string; suggestedAt?: number };
   if (!data?.kind || !data.workplaceId) return false;
   const { dispatch } = await import('@/features/geofencing/runner');
