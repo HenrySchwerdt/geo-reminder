@@ -58,7 +58,7 @@ design/
   figcraft/src/                   ← generator: build.py writes the .figcraft, export.py the PNGs
   exports/                        ← PNG previews (@2x) per area + page overviews
     iphone/{core,places,onboarding,states,dark,directions}
-    watch/  widgets/  overview/  design-system/
+    watch/  widgets/ (+ widgets/gallery)  overview/  design-system/
     brand/                        ← app icon (PNG 1024, SVG), logo lockup SVG, README boards
   references/                     ← research reference previews
 docs/
@@ -84,8 +84,9 @@ apps/  packages/core/             ← reserved for later milestones (React Nativ
 | iPhone · Places & Schedule | Settings, workplaces, add workplace, geofence radius, arrival/departure notifications, weekly pattern, reminders |
 | iPhone · Onboarding | Welcome, working hours, location and notification permission explanations, workplace setup, completion |
 | iPhone · System States | Empty, loading, permission denied, location unavailable, missed check-in, incomplete entry, conflict, confirmation and error |
-| Apple Watch | Main, active, break, clock-out prompt, complications |
-| Live Activity & Widgets | Lock Screen Live Activity and widgets, Dynamic Island (compact, minimal, expanded), Home Screen widgets |
+| Apple Watch | Main, active, break, clock-out prompt, complications, arrival notification, today summary, Smart Stack widget, offline sync |
+| Live Activity & Widgets | Lock Screen Live Activity and widgets, Dynamic Island (compact, minimal, expanded), Home Screen widgets in context |
+| Widgets | Every widget family, light and dark: small (not working, working, break, interactive clock-in), medium (today, week), large (week), Lock Screen accessories, Control Center controls, clear style, StandBy |
 | Directions | The three explored visual directions |
 | Dark Mode | Key screens in dark appearance |
 

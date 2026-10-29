@@ -16,9 +16,10 @@ FRAMES = {  # page -> folder (one PNG per top-level frame, 2x)
     "Directions": "iphone/directions",
     "Apple Watch": "watch",
     "Live Activity & Widgets": "widgets",
+    "Widgets": "widgets/gallery",
 }
 PAGES = ["Cover", "Brand", "Design System", "Flows", "iPhone · Core", "iPhone · Places & Schedule", "iPhone · Onboarding",
-         "iPhone · System States", "Apple Watch", "Live Activity & Widgets", "Directions", "Dark Mode"]
+         "iPhone · System States", "Apple Watch", "Live Activity & Widgets", "Widgets", "Directions", "Dark Mode"]
 
 
 def slug(s):
@@ -33,6 +34,7 @@ def main():
     # README boards on the Brand page embed the previous exports, so keep the folder and overwrite in place.
     for page, folder in FRAMES.items():
         run("export", DOC, "-o", os.path.join(OUT, folder) + "/", "--page", page, "--scale", "2")
+    shutil.rmtree(os.path.join(OUT, "overview"), ignore_errors=True)
     os.makedirs(os.path.join(OUT, "overview"), exist_ok=True)
     for k, page in enumerate(PAGES):
         run("render", DOC, "-o", os.path.join(OUT, "overview", f"{k:02d}-{slug(page)}.png"), "--page", page,

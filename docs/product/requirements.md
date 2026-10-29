@@ -58,11 +58,15 @@ Today, week, month, balance, expected vs actual, sessions, calendar (6, 7, 10, 1
 bars with a dashed target line, a month heat strip, one balance line.
 
 ### F. Apple Watch
-Clock in/out, breaks, active time, today total, complications, sync (33–37). The watch never edits history.
+Clock in/out, breaks, active time, today total, complications, sync (33–37), arrival notification with
+actions (37a), today summary (37b), Smart Stack widget (37c), offline state with queued sync (37d).
+The watch never edits history.
 
 ### G. Lock Screen & Dynamic Island
 Live Activity with interactive buttons (38), Dynamic Island compact/minimal/expanded (39), Lock Screen circular
-and rectangular widgets (38), Home Screen small/medium/large and clear-style widgets (40).
+and rectangular widgets (38), Home Screen small/medium/large and clear-style widgets (40). The **Widgets**
+page has every family on its own in light and dark, including interactive widgets (clock in, break, clock out),
+Lock Screen accessories, Control Center controls and StandBy.
 
 ### H. Settings
 Working hours, workdays, breaks, workplaces, pattern, reminders, appearance, Apple Watch, export (CSV/PDF),
