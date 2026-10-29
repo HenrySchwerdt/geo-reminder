@@ -9,3 +9,4 @@ export * from './time/complete';
 export * from './time/zone';
 export * from './export';
 export * from './surfaces';
+export * from './pay';

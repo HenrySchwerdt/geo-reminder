@@ -23,12 +23,14 @@ export function formatMinutes(minutes: number): string {
 
 /** Weekly hours as typed: "37.5", "37,5" or "38". Undefined when it isn't a number between 1 and 80. */
 export function parseWeeklyHours(text: string): number | undefined {
-  const n = Number(text.trim().replace(',', '.'));
-  return Number.isFinite(n) && n >= 1 && n <= 80 ? Math.round(n * 2) / 2 : undefined;
+  const value = text.trim().replace(',', '.');
+  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 1 && n <= 80 ? n : undefined;
 }
 
 /** "37.5 h" / "40 h". */
-export const formatHours = (h: number) => `${Number.isInteger(h) ? h : h.toFixed(1)} h`;
+export const formatHours = (h: number) => `${Number(h.toFixed(2))} h`;
 
 /** Change one weekday's mode; refuses to turn the last working day off (the daily target needs one). */
 export function setDayMode(pattern: DayMode[], index: number, mode: DayMode): DayMode[] {

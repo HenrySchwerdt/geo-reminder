@@ -98,6 +98,13 @@ export const DEFAULT_TIME_REMINDERS: TimeReminders = {
   missingCheckOut: true,
 };
 
+/** Optional salary contract. Amounts are integer minor units; never a tax or payroll calculation. */
+export const SalarySchema = z.object({
+  annualGrossCents: z.number().int().min(1).max(100_000_000_000),
+  currency: z.enum(['EUR', 'GBP', 'USD', 'CHF']),
+  paidVacationDays: z.number().int().min(0).max(365),
+});
+
 export const AppearanceSchema = z.enum(['system', 'light', 'dark']);
 
 /**
@@ -106,6 +113,7 @@ export const AppearanceSchema = z.enum(['system', 'light', 'dark']);
  */
 export const SettingsSchema = z.object({
   weeklyHours: z.number().min(1).max(80),
+  salary: SalarySchema.optional(),
   workdays: z.array(z.number().int().min(1).max(7)),
   profile: PrecisionProfileSchema,
   onboarded: z.boolean(),
@@ -153,3 +161,5 @@ export type BreakRuleSetting = z.infer<typeof BreakRuleSchema>;
 export type TimeReminders = z.infer<typeof TimeRemindersSchema>;
 export type Appearance = z.infer<typeof AppearanceSchema>;
 export type ExportFile = z.infer<typeof ExportFileSchema>;
+
+export type Salary = z.infer<typeof SalarySchema>;

@@ -1,5 +1,6 @@
 /** One icon vocabulary for both platforms: SF Symbols on iOS, Material Symbols on Android. */
 export const ICONS = {
+  pay: { ios: 'banknote', android: 'payments', web: 'payments' },
   today: { ios: 'house.fill', android: 'home', web: 'home' },
   calendar: { ios: 'calendar', android: 'calendar_month', web: 'calendar_month' },
   insights: { ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' },

@@ -23,6 +23,14 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
   @Published private(set) var lastCommand: SurfaceCommand?
 
   private var heldTasks: [WKWatchConnectivityRefreshBackgroundTask] = []
+  private static let deferredKey = "worktime.watch.deferredCommands"
+  private var deferredCommands: [String] = []
+
+  override init() {
+    super.init()
+    deferredCommands = UserDefaults.standard.stringArray(forKey: Self.deferredKey) ?? []
+    pendingCount = deferredCommands.count
+  }
 
   private var session: WCSession? {
     WCSession.isSupported() ? WCSession.default : nil
@@ -33,7 +41,11 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
   func activate() {
     guard let session = session else { return }
     session.delegate = self
-    session.activate()
+    if session.activationState == .activated {
+      flushDeferredCommands()
+    } else {
+      session.activate()
+    }
   }
 
   /// Takes the newest context the iPhone has sent, also one that arrived while the app was not running.
@@ -55,10 +67,11 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
 
   private func refreshStatus() {
     guard let session = session else { return }
-    let pending = session.outstandingUserInfoTransfers.filter { $0.isTransferring }.count
+    // Queued transfers may not be actively transferring while the phone is unreachable.
+    let outstanding = session.outstandingUserInfoTransfers.compactMap { $0.userInfo["command"] as? String }
     let reachable = session.isReachable
     DispatchQueue.main.async {
-      self.pendingCount = pending
+      self.pendingCount = Set(outstanding + self.deferredCommands).count
       self.isReachable = reachable
       self.completeHeldTasksIfPossible()
     }
@@ -77,10 +90,25 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     SnapshotStore.save(preview)
     WidgetCenter.shared.reloadAllTimelines()
 
-    guard let session = session else { return }
-    session.transferUserInfo(["command": json])
-    if session.isReachable {
-      session.sendMessage(["command": json], replyHandler: nil, errorHandler: nil)
+    // Keep a durable copy until delivery succeeds, including taps before WCSession activation.
+    deferredCommands.append(json)
+    UserDefaults.standard.set(deferredCommands, forKey: Self.deferredKey)
+    flushDeferredCommands()
+    if session?.activationState != .activated { activate() }
+  }
+
+  /// Main-thread only. Do not enqueue another OS transfer for one that is already outstanding.
+  private func flushDeferredCommands() {
+    guard let session = session, session.activationState == .activated else {
+      refreshStatus()
+      return
+    }
+    let outstanding = Set(session.outstandingUserInfoTransfers.compactMap { $0.userInfo["command"] as? String })
+    for json in deferredCommands where !outstanding.contains(json) {
+      session.transferUserInfo(["command": json])
+      if session.isReachable {
+        session.sendMessage(["command": json], replyHandler: nil, errorHandler: nil)
+      }
     }
     refreshStatus()
   }
@@ -110,6 +138,7 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     error: Error?
   ) {
     adoptReceivedContext()
+    DispatchQueue.main.async { self.flushDeferredCommands() }
     refreshStatus()
   }
 
@@ -119,10 +148,16 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
   }
 
   func sessionReachabilityDidChange(_ session: WCSession) {
-    refreshStatus()
+    DispatchQueue.main.async { self.flushDeferredCommands() }
   }
 
   func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
-    refreshStatus()
+    DispatchQueue.main.async {
+      if error == nil, let json = userInfoTransfer.userInfo["command"] as? String {
+        self.deferredCommands.removeAll { $0 == json }
+        UserDefaults.standard.set(self.deferredCommands, forKey: Self.deferredKey)
+      }
+      self.refreshStatus()
+    }
   }
 }

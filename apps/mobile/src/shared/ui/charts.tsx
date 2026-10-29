@@ -71,7 +71,8 @@ export function DayRibbon({
 
 export function WeekBars({ days, targetHours, height = 72 }: { days: { label: string; hours: number; today?: boolean }[]; targetHours: number; height?: number }) {
   const c = useColors();
-  const max = Math.max(targetHours * 1.25, ...days.map((d) => d.hours));
+  // A new account with no scheduled hours still needs finite native layout values.
+  const max = Math.max(targetHours * 1.25, ...days.map((d) => d.hours)) || 1;
   return (
     <View>
       <View style={{ height, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>

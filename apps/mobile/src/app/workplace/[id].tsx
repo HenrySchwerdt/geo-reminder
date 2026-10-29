@@ -2,11 +2,13 @@ import type { Workplace } from '@worktime/core';
 import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Alert, TextInput, View } from 'react-native';
 
 import { resync } from '@/features/geofencing/runner';
+import { requestAlwaysLocation } from '@/features/geofencing/permissions';
 import { useWorkplaces } from '@/features/workplaces/store';
 import { newId } from '@/shared/lib/id';
+import { deviceTimeZone } from '@/shared/lib/time-zone';
 import { useColors } from '@/shared/theme';
 import { Button, Card, Chips, Group, Row, Screen, SectionHeader, Text, ToggleRow } from '@/shared/ui/components';
 
@@ -19,6 +21,7 @@ const blank = (): Workplace => ({
   lat: 0,
   lng: 0,
   radius: 150,
+  tz: deviceTimeZone(),
   rules: {
     arrival: { enabled: true, delayMinutes: 5, window: { ...WINDOWS.morning } },
     departure: { enabled: true, delayMinutes: 15, onlyWhenClockedIn: true },
@@ -34,17 +37,24 @@ export default function WorkplaceEditor() {
   const removeWorkplace = useWorkplaces((s) => s.remove);
   const [wp, setWp] = useState<Workplace>(() => existing ?? blank());
   const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string>();
   const windowKey = !wp.rules.arrival.window ? 'any' : wp.rules.arrival.window.to === '11:00' ? 'morning' : 'day';
   const set = (patch: Partial<Workplace>) => setWp((w) => ({ ...w, ...patch }));
   const rules = (patch: Partial<Workplace['rules']>) => setWp((w) => ({ ...w, rules: { ...w.rules, ...patch } }));
 
   async function useCurrentLocation() {
     setLocating(true);
+    setLocationError(undefined);
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
-      if (!perm.granted) return;
+      if (!perm.granted) {
+        setLocationError('Location permission is off. Enable it in your phone settings, then try again.');
+        return;
+      }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       set({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    } catch {
+      setLocationError('Could not determine your location. Check Location Services and try again.');
     } finally {
       setLocating(false);
     }
@@ -52,6 +62,13 @@ export default function WorkplaceEditor() {
 
   async function save() {
     upsert({ ...wp, name: wp.name.trim() || 'Workplace' });
+    if (!existing && (wp.rules.arrival.enabled || wp.rules.departure.enabled)) {
+      try {
+        await requestAlwaysLocation();
+      } catch {
+        Alert.alert('Workplace saved', 'Background location could not be enabled. You can enable it later in Location settings, or clock in manually.');
+      }
+    }
     await resync();
     router.back();
   }
@@ -69,6 +86,9 @@ export default function WorkplaceEditor() {
       <Stack.Screen options={{ title: existing ? existing.name : 'New workplace' }} />
       <Card style={{ gap: 12 }}>
         <TextInput
+          accessibilityLabel="Workplace name"
+          autoCorrect={false}
+          autoCapitalize="words"
           value={wp.name}
           onChangeText={(name) => set({ name })}
           placeholder="Name, e.g. Studio Kreuzberg"
@@ -79,6 +99,7 @@ export default function WorkplaceEditor() {
           {located ? `${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}` : 'No location yet'}
         </Text>
         <Button label={locating ? 'Locating…' : 'Use current location'} icon="location" style="secondary" onPress={useCurrentLocation} disabled={locating} />
+        {locationError ? <Text variant="footnote" color="danger">{locationError}</Text> : null}
       </Card>
 
       <SectionHeader>Radius</SectionHeader>
@@ -138,6 +159,11 @@ export default function WorkplaceEditor() {
         })}
       </Row>
 
+      {!existing && (wp.rules.arrival.enabled || wp.rules.departure.enabled) ? (
+        <Text variant="footnote" color="text/secondary">
+          Saving asks for background location so arrival and departure reminders can work with the app closed. You can decline and clock in manually.
+        </Text>
+      ) : null}
       <Button label="Save" onPress={save} disabled={!located} />
       {existing ? <Button label="Delete workplace" style="destructive" icon="trash" onPress={remove} /> : null}
     </Screen>

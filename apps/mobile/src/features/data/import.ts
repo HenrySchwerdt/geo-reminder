@@ -69,7 +69,7 @@ export async function applyImport(file: ExportFile, options: { restoreSettings?:
   const added: Workplace[] = file.workplaces.filter((w) => !known.has(w.id));
   if (added.length) useWorkplaces.getState().replaceAll([...current, ...added]);
 
-  if (options.restoreSettings) useSettings.getState().update(file.settings);
+  if (options.restoreSettings) useSettings.getState().update({ ...file.settings, salary: file.settings.salary });
 
   await resync();
   return { events: events.length, workplaces: added.length, settingsRestored: !!options.restoreSettings };

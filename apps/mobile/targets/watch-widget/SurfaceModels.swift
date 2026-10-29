@@ -124,6 +124,7 @@ extension SurfaceSnapshot {
     switch (state, action) {
     case (.off, .clockIn):
       let carried = isStale(at: date) ? 0 : workedMs
+      next.day = SurfaceFormat.dayKey(date, in: timeZone)
       next.state = .working
       next.workedMs = carried
       next.workedAnchor = at - carried
