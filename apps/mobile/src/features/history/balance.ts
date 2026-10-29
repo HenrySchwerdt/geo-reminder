@@ -26,11 +26,20 @@ export function findIncomplete(effective: TimeEvent[], now: number): Session[] {
 export const incompleteDayStarts = (effective: TimeEvent[], now: number) =>
   new Set(findIncomplete(effective, now).map((s) => dayBounds(s.start).start));
 
-/** Worked time minus target for one day, or undefined when the day is not counted (incomplete or not over yet). */
-export function dayBalanceOf(effective: TimeEvent[], dayStart: number, now: number, t: Targets, skip: Set<number>): number | undefined {
+/** Worked time minus target for one day (from `countedEvents`), or undefined when the day is not counted (incomplete or not over yet). */
+export function dayBalanceOf(counted: TimeEvent[], dayStart: number, now: number, t: Targets, skip: Set<number>): number | undefined {
   const { end } = dayBounds(dayStart);
   if (end > now || skip.has(dayStart)) return undefined;
-  return summarize(effective, dayStart, end, now).workedMs - targetFor(dayStart, t);
+  return summarize(counted, dayStart, end, now).workedMs - targetFor(dayStart, t);
+}
+
+/**
+ * Effective events without those of incomplete sessions. Summing these keeps a forgotten check-out from
+ * inflating the day (and, through the carry-over into the next clock-in, the day after).
+ */
+export function countedEvents(effective: TimeEvent[], now: number): TimeEvent[] {
+  const dropped = new Set(findIncomplete(effective, now).flatMap((s) => s.eventIds));
+  return dropped.size ? effective.filter((e) => !dropped.has(e.id)) : effective;
 }
 
 /** Sum of day balances from the first recorded day up to yesterday. */
@@ -39,10 +48,11 @@ export function totalBalance(ledger: TimeEvent[], now: number, t: Targets): numb
   const first = effective[0];
   if (!first) return 0;
   const skip = incompleteDayStarts(effective, now);
+  const counted = countedEvents(effective, now);
   const todayStart = dayBounds(now).start;
   let total = 0;
   for (let day = dayBounds(first.at).start; day < todayStart; day = dayBounds(day, 1).start) {
-    total += dayBalanceOf(effective, day, now, t, skip) ?? 0;
+    total += dayBalanceOf(counted, day, now, t, skip) ?? 0;
   }
   return total;
 }

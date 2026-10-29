@@ -14,7 +14,7 @@ import {
 } from '@worktime/core';
 
 import { dayBounds } from '@/features/tracking/selectors';
-import { totalBalance, targetFor, type Targets } from './balance';
+import { countedEvents, incompleteDayStarts, targetFor, totalBalance, type Targets } from './balance';
 import { formatTime } from './dates';
 
 const MIN = 60_000;
@@ -163,9 +163,12 @@ export function validateDraft(draft: SessionDraft, others: Session[], now: numbe
 
 // ───────────────────────────── impact ─────────────────────────────
 
+/** Figures of one day as the app counts them: a day with a missing check-out counts for nothing until fixed. */
 const dayFigures = (events: TimeEvent[], day: number, now: number, t: Targets) => {
-  const s = summarize(effectiveEvents(events), day, dayBounds(day).end, now);
-  return { worked: s.workedMs, breaks: s.breakMs, balance: s.workedMs - targetFor(day, t) };
+  const effective = effectiveEvents(events);
+  const s = summarize(countedEvents(effective, now), day, dayBounds(day).end, now);
+  const counted = !incompleteDayStarts(effective, now).has(day);
+  return { worked: s.workedMs, breaks: s.breakMs, balance: counted ? s.workedMs - targetFor(day, t) : 0 };
 };
 
 export function impactOf(before: TimeEvent[], after: TimeEvent[], day: number, env: PlanEnv): Impact {

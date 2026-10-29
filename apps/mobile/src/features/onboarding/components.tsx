@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,7 +48,8 @@ export function OnboardingFrame({
 }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const canGoBack = stepIndex(step) > 0 && router.canGoBack();
+  const navigation = useNavigation();
+  const canGoBack = stepIndex(step) > 0 && navigation.canGoBack();
   return (
     <View style={{ flex: 1, backgroundColor: c['bg/canvas'], paddingTop: insets.top + space.s }}>
       <View style={{ height: 44, paddingHorizontal: space.l, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>

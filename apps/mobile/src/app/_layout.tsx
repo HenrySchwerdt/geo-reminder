@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="workplace/[id]" options={{ presentation: 'modal', title: 'Workplace' }} />
+        <Stack.Screen name="session/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="location" options={{ title: 'Location' }} />
         <Stack.Screen name="data" options={{ title: 'Your data' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />

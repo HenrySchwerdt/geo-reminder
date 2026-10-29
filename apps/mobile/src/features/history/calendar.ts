@@ -2,7 +2,7 @@
 import { effectiveEvents, summarize, type TimeEvent } from '@worktime/core';
 
 import { dayBounds } from '@/features/tracking/selectors';
-import { dayBalanceOf, incompleteDayStarts, targetFor, type Targets } from './balance';
+import { countedEvents, dayBalanceOf, incompleteDayStarts, targetFor, type Targets } from './balance';
 import { toDateKey } from './dates';
 
 export type CellState = 'default' | 'today' | 'selected' | 'missing' | 'off' | 'future';
@@ -25,7 +25,10 @@ export interface MonthModel {
 export function buildMonth(ledger: TimeEvent[], monthStart: number, now: number, targets: Targets, selectedKey?: string): MonthModel {
   const effective = effectiveEvents(ledger);
   const skip = incompleteDayStarts(effective, now);
+  const counted = countedEvents(effective, now);
   const todayStart = dayBounds(now).start;
+  // Targets only count from the first recorded day — a new user doesn't start the month in deficit.
+  const trackingStart = effective[0] ? dayBounds(effective[0].at).start : todayStart;
   const first = new Date(monthStart);
   const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
 
@@ -36,7 +39,7 @@ export function buildMonth(ledger: TimeEvent[], monthStart: number, now: number,
   for (let d = 1; d <= daysInMonth; d++) {
     const start = new Date(first.getFullYear(), first.getMonth(), d).getTime();
     const key = toDateKey(start);
-    const summary = summarize(effective, start, dayBounds(start).end, now);
+    const summary = summarize(counted, start, dayBounds(start).end, now);
     const incomplete = skip.has(start);
     const hasData = summary.segments.length > 0;
 
@@ -48,7 +51,7 @@ export function buildMonth(ledger: TimeEvent[], monthStart: number, now: number,
     else if (!hasData && targetFor(start, targets) === 0) state = 'off';
 
     if (start <= todayStart && !incomplete) workedMs += summary.workedMs;
-    balanceMs += dayBalanceOf(effective, start, now, targets, skip) ?? 0;
+    if (start >= trackingStart) balanceMs += dayBalanceOf(counted, start, now, targets, skip) ?? 0;
     cells.push({ key, day: d, state, hours: hasData && state !== 'missing' ? summary.workedMs / 3_600_000 : undefined });
   }
   while (cells.length % 7) cells.push(null);
