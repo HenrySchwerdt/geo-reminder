@@ -14,6 +14,7 @@ import {
   type SamplingPlan,
 } from '@worktime/core';
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 import { cancelReminder, showReminder } from '@/features/notifications';
 import { getWorkplaces } from '@/features/workplaces/store';
@@ -80,7 +81,11 @@ async function hasBackgroundPermission() {
   return p.granted;
 }
 
+// The web preview has no background location: the engine still runs, nothing is registered with the OS.
+const osLocation = Platform.OS !== 'web';
+
 async function applyRegions(regions: OsRegion[]) {
+  if (!osLocation) return;
   const started = await Location.hasStartedGeofencingAsync(GEOFENCE_TASK).catch(() => false);
   if (!regions.length || !(await hasBackgroundPermission())) {
     if (started) await Location.stopGeofencingAsync(GEOFENCE_TASK);
@@ -100,6 +105,7 @@ const ACCURACY: Record<SamplingPlan['accuracy'], Location.Accuracy> = {
 };
 
 async function applySampling(plan: SamplingPlan) {
+  if (!osLocation) return;
   const started = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false);
   if (plan.mode === 'off' || !(await hasBackgroundPermission())) {
     if (started) await Location.stopLocationUpdatesAsync(LOCATION_TASK);

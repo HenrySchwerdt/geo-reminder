@@ -5,6 +5,7 @@ export * from './geofence/profiles';
 export * from './geofence/engine';
 export * from './time/day';
 export * from './time/ledger';
+export * from './time/complete';
 export * from './time/zone';
 export * from './export';
 export * from './surfaces';

@@ -241,7 +241,8 @@ export function SessionEditor({ sessionId, initialDay }: { sessionId?: string; i
         />
         <ListRow
           title="Ends"
-          subtitle={changed.end && stored?.end ? `was ${formatTime(stored.end, zone)}` : undefined}
+          // A session without a check-out only "ends" at the next clock-in: there is no earlier end to show.
+          subtitle={changed.end && stored?.end && !original?.incomplete ? `was ${formatTime(stored.end, zone)}` : undefined}
           icon="signOut"
           last
           accessory={

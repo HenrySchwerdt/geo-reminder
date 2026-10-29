@@ -37,6 +37,14 @@ describe('surface snapshot', () => {
     expect(snap.weekTargetMs).toBe(40 * H);
   });
 
+  it('leaves a day without a check-out out of the week', () => {
+    // Wednesday's clock-out is missing: without the rule it would count until Thursday's clock-in (~24 h).
+    const forgotten = ledger.filter((e) => e.id !== 'd');
+    const s = buildSnapshot({ ledger: forgotten, settings: DEFAULT_SETTINGS, workplaces, now, tz: TZ });
+    expect(s.weekWorkedMs).toBe(9 * H + s.workedMs);
+    expect(s.weekBalanceMs).toBe(1 * H);
+  });
+
   it('is off without a running session', () => {
     const off = buildSnapshot({ ledger: ledger.slice(0, 4), settings: DEFAULT_SETTINGS, workplaces, now, tz: TZ });
     expect(off).toMatchObject({ state: 'off', day: '2025-10-16', workedMs: 0 });

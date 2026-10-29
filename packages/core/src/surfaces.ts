@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { BreakRuleSetting, Settings, TimeEvent, Workplace } from './schema';
 import { addDays, dateKeyOf, isoWeekdayOf } from './time/zone';
 import { buildSessions, effectiveEvents, runningSession, sessionDay, sessionZone } from './time/ledger';
+import { countedEvents, incompleteDays } from './time/complete';
 import { expectedEnd, summarizeDay, type BreakRule } from './time/day';
 
 export const SurfaceSnapshotSchema = z.object({
@@ -83,8 +84,10 @@ export function buildSnapshot({ ledger, settings, workplaces, now, tz }: Snapsho
   const targetMs = summary.sessions.length || settings.workdays.includes(isoWeekdayOf(day)) ? dailyTarget(settings) : 0;
   const end = expectedEnd(summary, dailyTarget(settings), now, breakRulesOf(settings.breakRules));
 
-  // This week (Mon–Sun of today), balance over finished days only.
+  // This week (Mon–Sun of today), balance over finished days only; days without a check-out count for nothing.
   const today = dateKeyOf(now, tz);
+  const counted = countedEvents(effective, now, tz);
+  const incomplete = incompleteDays(effective, now, tz);
   const monday = addDays(today, 1 - isoWeekdayOf(today));
   const firstDay = buildSessions(effective, now)[0];
   const since = firstDay ? sessionDay(firstDay, tz) : today;
@@ -92,9 +95,9 @@ export function buildSnapshot({ ledger, settings, workplaces, now, tz }: Snapsho
   let weekBalanceMs = 0;
   for (let i = 0; i < 7; i++) {
     const d = addDays(monday, i);
-    const s = d === day ? summary : summarizeDay(effective, d, now, tz);
+    const s = d === day ? summary : summarizeDay(counted, d, now, tz);
     weekWorkedMs += s.workedMs;
-    if (d >= since && d < today && s.state === 'off') {
+    if (d >= since && d < today && s.state === 'off' && !incomplete.has(d)) {
       weekBalanceMs += s.workedMs - (settings.workdays.includes(i + 1) ? dailyTarget(settings) : 0);
     }
   }

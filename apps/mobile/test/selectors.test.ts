@@ -43,6 +43,13 @@ describe('tracking selectors', () => {
     expect(week.days.find((d) => d.today)?.label).toBe('T');
   });
 
+  it('leaves days without a check-out out of the week', () => {
+    const forgotten = ledger.filter((e) => e !== ledger[3]); // Wednesday's clock-out
+    const week = weekSummary(forgotten, NOW, [1, 2, 3, 4, 5], TARGET, TZ);
+    expect(week.days.find((d) => d.day === '2025-10-15')).toMatchObject({ hours: 0, incomplete: true });
+    expect(week.balance).toBe(3_600_000); // only Tuesday's +1h
+  });
+
   it('applies corrections (supersede) before summarising', () => {
     const corrected = [...ledger, ev('clockOut', at(2025, 10, 15, 17), { supersedes: ledger[3].id, source: 'manual' })];
     expect(weekSummary(corrected, NOW, [1, 2, 3, 4, 5], TARGET, TZ).balance).toBe(3_600_000);

@@ -5,8 +5,10 @@
 import {
   addDays,
   buildSessions,
+  countedEvents,
   dateKeyOf,
   effectiveEvents,
+  incompleteDays,
   isoWeekdayOf,
   runningSession,
   sessionDay,
@@ -58,18 +60,26 @@ export interface WeekDay {
   tz?: string;
   /** A session of this day is still running (a night shift into today): not counted in the balance yet. */
   running: boolean;
+  /** A session of this day has no check-out: the day counts for nothing until it is fixed. */
+  incomplete: boolean;
 }
 
 const LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-/** The week containing `now`: per-day hours plus worked total and balance against the daily target. */
+/**
+ * The week containing `now`: per-day hours plus worked total and balance against the daily target. Sessions
+ * without a check-out count for nothing until fixed, as in the calendar.
+ */
 export function weekSummary(ledger: TimeEvent[], now: number, workdays: number[], dailyTargetMs: number, tz: string) {
   const today = dateKeyOf(now, tz);
   const start = weekStart(today);
   const since = trackingSince(ledger, now, tz) ?? today;
+  const effective = effectiveEvents(ledger);
+  const counted = countedEvents(effective, now, tz);
+  const incomplete = incompleteDays(effective, now, tz);
   const days: WeekDay[] = LABELS.map((label, i) => {
     const day = addDays(start, i);
-    const d = daySummary(ledger, day, now, tz);
+    const d = summarizeDay(counted, day, now, tz);
     return {
       label,
       day,
@@ -80,10 +90,11 @@ export function weekSummary(ledger: TimeEvent[], now: number, workdays: number[]
       lastOut: d.lastOut,
       tz: d.sessions[0]?.tz,
       running: d.state !== 'off',
+      incomplete: incomplete.has(day),
     };
   });
-  const counted = days.filter((d) => d.day >= since && d.day < today && !d.running);
+  const finished = days.filter((d) => d.day >= since && d.day < today && !d.running && !d.incomplete);
   const worked = days.reduce((t, d) => t + d.hours * 3_600_000, 0);
-  const balance = counted.reduce((t, d) => t + d.hours * 3_600_000 - (d.isWorkday ? dailyTargetMs : 0), 0);
+  const balance = finished.reduce((t, d) => t + d.hours * 3_600_000 - (d.isWorkday ? dailyTargetMs : 0), 0);
   return { days, worked, balance };
 }
