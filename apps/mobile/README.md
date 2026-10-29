@@ -19,8 +19,11 @@ real device. `npx expo start --web` runs a browser preview of the UI with local-
 | Area | Status |
 |---|---|
 | Tabs (Today, Calendar, Insights, Settings): Liquid Glass tab bar on iOS 26, Material on Android | ✅ |
-| Today: clock in / break / clock out, live timer, day ribbon, expected end with the legally required break, week bars, balance | ✅ |
+| Today: clock in / break / clock out, live timer, day ribbon, expected end with your break rules, week bars, balance | ✅ |
+| Clock-in / clock-out sheets (Arrived 08:44 / Now / Other, day summary, break warning); missed check-in / check-out cards | ✅ |
 | Calendar: month grid, day details, history, edit / add / delete sessions with impact preview and undo (append-only) | ✅ |
+| Insights: week, month (heat strip, averages) and year, with balance | ✅ |
+| Time zones: sessions keep the zone and day they started in; night shifts count to their start day | ✅ |
 | Workplaces with reminder rules (dwell time, time window, days, departure delay) | ✅ |
 | Adaptive geofencing (`@worktime/core` engine + `features/geofencing`): OS regions, distance-scaled sampling, precision profiles, GPS budget, diagnostics | ✅ needs on-device verification |
 | Reminder notifications with “Clock in at 08:44” actions | ✅ actions open the app |
@@ -30,7 +33,9 @@ real device. `npx expo start --web` runs a browser preview of the UI with local-
 | Onboarding with prominent background-location disclosure | ✅ |
 | Your data: CSV / JSON export, validated backup import, delete all; privacy screen | ✅ |
 | Release: EAS profiles, privacy manifest, store docs (`docs/release`) | ✅ |
-| Live Activity, widgets, watch apps | next |
+| Widgets (iOS Home / Lock Screen, Android), Live Activity & Dynamic Island, Android ongoing notification (`expo-widgets`, `features/surfaces`) | ✅ needs on-device verification |
+| Apple Watch app + complications (`targets/watch*`, `modules/watch-bridge`) | ✅ compile in Xcode, verify on device |
+| Wear OS app + tile + complications (`apps/wear`, `modules/wear-bridge`) | ✅ builds, verify on device |
 
 ## Architecture
 
@@ -48,13 +53,18 @@ of them plus `expo-doctor` and the iOS/Android bundles.
 ## Structure
 
 ```
-src/app/                 routes: (tabs), onboarding/, day/[date], session/[id], workplace/[id], location, data, privacy
+src/app/                 routes: (tabs), onboarding/, clock/{in,out}, day/[date], session/[id], workplace/[id], settings screens, location, data, privacy
 src/features/tracking    event log (SQLite), store, selectors, clock actions
 src/features/history     calendar model, correction planning, day/session components
 src/features/geofencing  background tasks, engine runner, permissions, engine store
 src/features/onboarding  steps, disclosure copy, gate
 src/features/data        CSV/JSON export, import, delete all
+src/features/clock       clock-in/out sheets, missed check-in/out cards
+src/features/insights    week / month / year models
+src/features/surfaces    snapshot hub + adapters: widgets & Live Activity, Apple Watch, Wear OS, reminders
 src/features/settings, workplaces, notifications, reminders (time-based planner + scheduling)
+modules/                 local Expo modules: watch-bridge (iOS), wear-bridge (Android)
+targets/                 Apple Watch app + complications (@bacons/apple-targets)
 src/shared               UI kit, charts, theme tokens, icons, storage/persistence helpers
 ```
 

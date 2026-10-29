@@ -72,12 +72,31 @@ cd apps/mobile && npx expo run:ios   # or run:android (development build)
 ```
 
 * **iPhone and Android phones**: one Expo codebase in `apps/mobile` ([README](apps/mobile/README.md)).
-* **Apple Watch and Wear OS**: native apps (SwiftUI, Compose for Wear OS) that sync with the phone. React
-  Native doesn't run on watches ([architecture](docs/technical/architecture.md)).
+* **Widgets, Live Activity, Apple Watch, Wear OS**: thin surfaces that render a snapshot from the phone and send
+  taps back ([surfaces](docs/technical/surfaces.md)). The Apple Watch app (SwiftUI) lives in `apps/mobile/targets`,
+  the Wear OS app (Compose) in `apps/wear`. React Native doesn't run on watches.
 * **Geofencing**: three rings per workplace. Far away nothing runs, approaching triggers a low-power check
   every few minutes, near the fence GPS runs every 20 to 90 s, and once inside it stops. Users decide when
   they're asked. A commute simulation needs 14 location fixes an hour instead of 720
   ([concept](docs/technical/geofencing.md)).
+
+### Continue on a Mac
+
+```bash
+npm install                                   # repo root, npm 11
+npm test && npm run typecheck                 # core + app logic
+cd apps/mobile
+npx expo start --web                          # quick UI preview in the browser (no location / notifications)
+npx expo prebuild --clean                     # generates ios/ and android/ (not committed)
+npx expo run:ios --device                     # iPhone dev build; set ios.appleTeamId in app.json first
+npx expo run:android                          # Android dev build
+xed ios                                       # Xcode: schemes Worktime, WorktimeWatch, ExpoWidgetsTarget
+cd ../wear && ./gradlew installDebug          # Wear OS app (or open apps/wear in Android Studio)
+```
+
+Signing: the iPhone app, widget extension and both watch targets share the App Group `group.com.worktime.app`;
+the Android phone and Wear OS apps must be signed with the same key. What has been verified where, and what
+still needs a device, is listed per surface in [docs/technical/surfaces.md](docs/technical/surfaces.md).
 
 ## What's here
 
@@ -90,11 +109,13 @@ design/
     watch/  widgets/ (+ widgets/gallery)  overview/  design-system/
     brand/                        ← app icon (PNG 1024, SVG), logo lockup SVG, README boards
   references/                     ← research reference previews
-apps/mobile/                      ← Expo app (iOS + Android)
+apps/mobile/                      ← Expo app (iOS + Android), Apple Watch targets, local native modules
+apps/wear/                        ← Wear OS app (Kotlin, Compose for Wear OS, tile, complications)
 packages/core/                    ← geofence engine + time tracking math, tested
 docs/
   technical/geofencing.md         ← adaptive geofencing concept and numbers
-  technical/architecture.md       ← Expo + native watches, sync, milestones
+  technical/architecture.md       ← Expo + native watches, sync, time zones, milestones
+  technical/surfaces.md           ← widgets, Live Activity, Apple Watch, Wear OS: contract and status
   product/requirements.md         ← requirements → screens
   product/user-flows.md           ← six journeys + state model
   product/technical-constraints.md← iOS limits that shape the UX

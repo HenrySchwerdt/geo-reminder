@@ -78,6 +78,9 @@ Shared: all screens, flows, data, the geofence engine, notifications (expo-notif
 1. ✅ Product design (this repo's `design/`).
 2. ✅ **Core + app shell**: `packages/core` geofence engine with tests, Expo app with tabs, Today screen
    with manual clock in/out/break, local persistence, workplace setup, background geofencing task.
-3. Calendar, corrections, insights, onboarding, notifications with actions.
-4. Widgets / Live Activity (Swift), Glance widgets + ongoing notification (Kotlin), watch apps.
-5. Device testing (battery, OEM background limits), accessibility, store submission.
+3. ✅ Calendar, corrections, insights (week/month/year), onboarding, notifications with actions, time-based
+   reminders, settings, time zones, CSV/JSON/PDF export.
+4. ✅ Widgets and Live Activity (`expo-widgets`), Android widgets + ongoing notification, Apple Watch app with
+   complications, Wear OS app with tile and complications — see [surfaces.md](surfaces.md). Native code is
+   written and (Android, Wear OS) compiled; the Swift targets still need their first Xcode build.
+5. Device testing (battery, OEM background limits, every surface), accessibility, store submission.
