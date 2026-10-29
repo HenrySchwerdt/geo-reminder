@@ -297,16 +297,9 @@ def notification(b, parent):
 
 
 def app_icon(b, parent, size=60, name="App Icon"):
-    """Worktime app icon: a deep green squircle with a day arc that starts at an amber dot."""
-    f = b.frame(parent, name=name, w=size, h=size, radius=size * 0.225, sw="fixed", sh="fixed",
-                fills=[{"type": "linearGradient", "stops": ["#2C8A66", "#14473A"]}])
-    s = size / 60
-    b.ellipse(f, 30 * s, 30 * s, None, x=15 * s, y=15 * s, name="Track",
-              stroke="#FFFFFF40", strokeWeight=4.5 * s)
-    b.vector(f, f"M{30*s} {15*s} A{15*s} {15*s} 0 1 1 {15*s} {30*s}", stroke="#FFFFFF", sw=4.5 * s,
-             name="Arc")
-    b.ellipse(f, 8 * s, 8 * s, "#F2B04E", x=26 * s, y=11 * s, name="Start")
-    return f
+    """Worktime app icon (see brand.py for the full logo system)."""
+    from brand import icon
+    return icon(b, parent, size, "Default", name=name)
 
 
 def define_components(b, x, y):

@@ -101,8 +101,8 @@ def watch_face(b, x, y):
             b.text(cell, lab, "Caption", "text/primary", fontSize=12, fontStyle="Semi Bold")
         else:
             b.icon(cell, "play", 22, color="accent", weight="fill")
-    b.text(root, "Rectangular · gauge · balance · action", "Caption", "text/tertiary", x=18, y=218,
-           fontSize=9)
+    b.text(root, "Rectangular · gauge · balance · action", "Caption", "text/tertiary", x=0, y=220, w=WW,
+           textAlign="center", fontSize=9, lineHeight=12)
     return root
 
 

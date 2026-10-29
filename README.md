@@ -1,13 +1,54 @@
-# Worktime
+<p align="center">
+  <img src="design/exports/brand/app-icon-1024.png" width="120" alt="Worktime app icon: a day arc that starts at an amber dot">
+</p>
 
-A calm, privacy-first work-time tracker for iPhone, Apple Watch and the Lock Screen.
-It reminds you to clock in and out when you arrive at or leave work, and keeps an accurate record that you
-can always correct.
+<h1 align="center">Worktime</h1>
+
+<p align="center">
+  <b>Work time, without the effort.</b><br>
+  A calm, privacy-first work-time tracker for iPhone, Apple Watch and the Lock Screen.
+  It reminds you to clock in and out when you arrive at or leave work, and keeps a record you can always correct.
+</p>
 
 > **Status: Milestone 1, product design.** The app itself is not implemented yet. This repository has
 > the complete UX and visual design as editable FigCraft files, plus exports, specifications and research.
 
-![Today](design/exports/iphone/core/Today%20·%20Working.png)
+![Worktime: Today screen in light and dark mode and the calendar](design/exports/brand/README%20·%20Hero.png)
+
+## The design
+
+### Today, at a glance
+The status pill says whether you're working. The timer shows for how long, and the day ribbon shows how
+the day is going. One or two capsule buttons show what you can do next.
+
+![Today: not working, working, on break, clock-out confirmation, day details](design/exports/brand/README%20·%20Core.png)
+
+### Fix anything, and see the impact first
+Missing check-outs show up in red. Every correction previews its effect on worked time and on your overtime
+balance before you save it, and the original stays in the day's history.
+
+![Calendar, incomplete entry, add missed day, edit session, weekly insights](design/exports/brand/README%20·%20Corrections.png)
+
+### Reminders that ask, never assume
+Geofences only fire when you arrive at or leave a workplace, and the result is always a question. The
+detected time is offered as the answer. Home-office days use your weekly pattern instead of location.
+
+![Onboarding, location permission, arrival notification, geofence radius, weekly pattern](design/exports/brand/README%20·%20Onboarding.png)
+
+### Lock Screen, Dynamic Island, widgets and Apple Watch
+![Live Activity, Dynamic Island, Home Screen widgets, Apple Watch](design/exports/brand/README%20·%20Ecosystem.png)
+
+### Dark mode
+![Dark mode screens](design/exports/brand/README%20·%20Dark.png)
+
+### Logo
+The day arc starts at an amber dot, the moment you arrive. It reads as a clock, a progress ring and a place
+marker, the three ideas behind Worktime.
+
+![Logo system: app icon, construction, lockups, iOS 26 appearances, small sizes](design/exports/brand/Logo.png)
+
+More: [all screens](design/exports/iphone), [watch](design/exports/watch), [widgets](design/exports/widgets),
+[page overviews](design/exports/overview), [design system](design/exports/design-system).
 
 ## What's here
 
@@ -18,6 +59,7 @@ design/
   exports/                        ← PNG previews (@2x) per area + page overviews
     iphone/{core,places,onboarding,states,dark,directions}
     watch/  widgets/  overview/  design-system/
+    brand/                        ← app icon (PNG 1024, SVG), logo lockup SVG, README boards
   references/                     ← research reference previews
 docs/
   product/requirements.md         ← requirements → screens
@@ -35,6 +77,7 @@ apps/  packages/core/             ← reserved for later milestones (React Nativ
 | Page | Contents |
 |---|---|
 | Cover | Overview |
+| Brand | Logo (mark, construction, lockups, iOS 26 icon appearances, small sizes) and the README boards |
 | Design System | Colour variables (Light/Dark), type and effect styles, spacing and radii, 109 icon components, UI components with variants |
 | Flows | Six user-journey diagrams |
 | iPhone · Core | Today (off / working / break), clock-in/out sheets, calendar, day details, edit, add missed day, weekly and monthly insights |
@@ -56,11 +99,12 @@ app, or work headless with the CLI:
 
 ```bash
 cd design/figcraft/src
-python3 build.py screens_core screens_places screens_onboarding screens_apple flows   # regenerate .figcraft
+python3 build.py screens_core screens_places screens_onboarding screens_apple flows brand   # regenerate .figcraft
 python3 export.py                                                                      # regenerate PNGs
 ```
 
-`build.py` needs `figcraft-cli` on the `PATH`. The document is generated from code, so make changes in
+`build.py` needs `figcraft-cli` on the `PATH`. The README boards on the Brand page embed the PNGs from the
+previous export, so run build + export twice after changing screens. The document is generated from code, so make changes in
 `design/figcraft/src/` and rebuild. Hand edits made in FigCraft get overwritten on the next build unless
 you port them back to the generator.
 
